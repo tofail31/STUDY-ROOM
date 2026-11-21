@@ -1,0 +1,6 @@
+{
+  "name": "STUDY ROOM",
+  "description": "STUDY ROOM — Focus study tracker, live 30-seat study groups, subjects & to-do manager, plus daily Adzan prayer times, Al-Qur'an, Do'a, and Dzikir.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

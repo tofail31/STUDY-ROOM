@@ -1,0 +1,256 @@
+package com.example.data.local
+
+import com.example.data.model.AyahItem
+import com.example.data.model.DailyAyah
+import com.example.data.model.SurahSummary
+
+object QuranCatalogData {
+
+    val dailyAyahs = listOf(
+        DailyAyah(
+            id = "55:13",
+            surahNumber = 55,
+            ayahNumber = 13,
+            surahName = "Q. S. Ar-Rahman",
+            arabicText = "فَبِأَيِّ آلَاءِ رَبِّكُمَا تُكَذِّبَانِ",
+            translation = "So which of the favors of your Lord would you deny?",
+            translationBn = "অতএব, তোমরা উভয়ে তোমাদের পালনকর্তার কোন কোন অনুগ্রহকে অস্বীকার করবে?"
+        ),
+        DailyAyah(
+            id = "94:5",
+            surahNumber = 94,
+            ayahNumber = 5,
+            surahName = "Q. S. Al-Insyirah",
+            arabicText = "فَإِنَّ مَعَ الْعُسْرِ يُسْرًا",
+            translation = "For indeed, with hardship will be ease.",
+            translationBn = "নিশ্চয়ই কষ্টের সাথেই রয়েছে স্বস্তি।"
+        ),
+        DailyAyah(
+            id = "2:286",
+            surahNumber = 2,
+            ayahNumber = 286,
+            surahName = "Q. S. Al-Baqarah",
+            arabicText = "لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا",
+            translation = "Allah does not charge a soul except with that within its capacity.",
+            translationBn = "আল্লাহ কাউকে তার সাধ্যাতীত কোনো কাজের ভার দেন না।"
+        ),
+        DailyAyah(
+            id = "13:28",
+            surahNumber = 13,
+            ayahNumber = 28,
+            surahName = "Q. S. Ar-Ra'd",
+            arabicText = "أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ",
+            translation = "Unquestionably, by the remembrance of Allah hearts are assured.",
+            translationBn = "জেনে রাখো, আল্লাহর স্মরণেই অন্তরসমূহ প্রশান্ত হয়।"
+        ),
+        DailyAyah(
+            id = "65:3",
+            surahNumber = 65,
+            ayahNumber = 3,
+            surahName = "Q. S. At-Talaq",
+            arabicText = "وَمَن يَتَوَكَّلْ عَلَى اللَّهِ فَهُوَ حَسْبُهُ",
+            translation = "And whoever relies upon Allah - then He is sufficient for him.",
+            translationBn = "যে ব্যক্তি আল্লাহর উপর ভরসা করে, তাঁর জন্য আল্লাহই যথেষ্ট।"
+        ),
+        DailyAyah(
+            id = "2:152",
+            surahNumber = 2,
+            ayahNumber = 152,
+            surahName = "Q. S. Al-Baqarah",
+            arabicText = "فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي وَلَا تَكْفُرُونِ",
+            translation = "So remember Me; I will remember you. And be grateful to Me and do not deny Me.",
+            translationBn = "অতএব তোমরা আমাকে স্মরণ করো, আমিও তোমাদের স্মরণ করবো। আমার কৃতজ্ঞতা প্রকাশ করো এবং অকৃতজ্ঞ হয়ো না।"
+        )
+    )
+
+    val allSurahs: List<SurahSummary> = listOf(
+        SurahSummary(1, "Al-Fatihah", "الفاتحة", "Pembukaan", 7, "Makkiyah"),
+        SurahSummary(2, "Al-Baqarah", "البقرة", "Sapi Betina", 286, "Madaniyah"),
+        SurahSummary(3, "Ali 'Imran", "آل عمران", "Keluarga Imran", 200, "Madaniyah"),
+        SurahSummary(4, "An-Nisa'", "النساء", "Wanita", 176, "Madaniyah"),
+        SurahSummary(5, "Al-Ma'idah", "المائدة", "Jamuan", 120, "Madaniyah"),
+        SurahSummary(6, "Al-An'am", "الأنعام", "Binatang Ternak", 165, "Makkiyah"),
+        SurahSummary(7, "Al-A'raf", "الأعراف", "Tempat Tertinggi", 206, "Makkiyah"),
+        SurahSummary(8, "Al-Anfal", "الأنفال", "Harta Rampasan Perang", 75, "Madaniyah"),
+        SurahSummary(9, "At-Taubah", "التوبة", "Pengampunan", 129, "Madaniyah"),
+        SurahSummary(10, "Yunus", "يونس", "Nabi Yunus", 109, "Makkiyah"),
+        SurahSummary(11, "Hud", "هود", "Nabi Hud", 123, "Makkiyah"),
+        SurahSummary(12, "Yusuf", "يوسف", "Nabi Yusuf", 111, "Makkiyah"),
+        SurahSummary(13, "Ar-Ra'd", "الرعد", "Guruh", 43, "Madaniyah"),
+        SurahSummary(14, "Ibrahim", "إبراهيم", "Nabi Ibrahim", 52, "Makkiyah"),
+        SurahSummary(15, "Al-Hijr", "الحجر", "Gunung Al-Hijr", 99, "Makkiyah"),
+        SurahSummary(16, "An-Nahl", "النحل", "Lebah", 128, "Makkiyah"),
+        SurahSummary(17, "Al-Isra'", "الإسراء", "Perjalanan Malam", 111, "Makkiyah"),
+        SurahSummary(18, "Al-Kahf", "الكهف", "Penghuni Gua", 110, "Makkiyah"),
+        SurahSummary(19, "Maryam", "مريم", "Maryam", 98, "Makkiyah"),
+        SurahSummary(20, "Taha", "طه", "Taha", 135, "Makkiyah"),
+        SurahSummary(21, "Al-Anbiya'", "الأنبياء", "Para Nabi", 112, "Makkiyah"),
+        SurahSummary(22, "Al-Hajj", "الحج", "Haji", 78, "Madaniyah"),
+        SurahSummary(23, "Al-Mu'minun", "المؤمنون", "Orang-Orang Mukmin", 118, "Makkiyah"),
+        SurahSummary(24, "An-Nur", "النور", "Cahaya", 64, "Madaniyah"),
+        SurahSummary(25, "Al-Furqan", "الفرقان", "Pembeda", 77, "Makkiyah"),
+        SurahSummary(26, "Asy-Syu'ara'", "الشعراء", "Penyair", 227, "Makkiyah"),
+        SurahSummary(27, "An-Naml", "النمل", "Semut", 93, "Makkiyah"),
+        SurahSummary(28, "Al-Qasas", "القصص", "Kisah-Kisah", 88, "Makkiyah"),
+        SurahSummary(29, "Al-'Ankabut", "العنكبوت", "Laba-Laba", 69, "Makkiyah"),
+        SurahSummary(30, "Ar-Rum", "الروم", "Bangsa Romawi", 60, "Makkiyah"),
+        SurahSummary(31, "Luqman", "لقمان", "Luqman", 34, "Makkiyah"),
+        SurahSummary(32, "As-Sajdah", "السجدة", "Sajdah", 30, "Makkiyah"),
+        SurahSummary(33, "Al-Ahzab", "الأحزاب", "Golongan Bersekutu", 73, "Madaniyah"),
+        SurahSummary(34, "Saba'", "سبأ", "Kaum Saba'", 54, "Makkiyah"),
+        SurahSummary(35, "Fatir", "فاطر", "Pencipta", 45, "Makkiyah"),
+        SurahSummary(36, "Yasin", "يس", "Yasin", 83, "Makkiyah"),
+        SurahSummary(37, "As-Saffat", "الصافات", "Barisan-Barisan", 182, "Makkiyah"),
+        SurahSummary(38, "Sad", "ص", "Sad", 88, "Makkiyah"),
+        SurahSummary(39, "Az-Zumar", "الزمر", "Rombongan", 75, "Makkiyah"),
+        SurahSummary(40, "Ghafir", "غافر", "Yang Mengampuni", 85, "Makkiyah"),
+        SurahSummary(41, "Fussilat", "فصلت", "Yang Dijelaskan", 54, "Makkiyah"),
+        SurahSummary(42, "Asy-Syura", "الشورى", "Musyawarah", 53, "Makkiyah"),
+        SurahSummary(43, "Az-Zukhruf", "الزخرف", "Perhiasan", 89, "Makkiyah"),
+        SurahSummary(44, "Ad-Dukhan", "الدخان", "Kabut", 59, "Makkiyah"),
+        SurahSummary(45, "Al-Jasiyah", "الجاثية", "Yang Bertekuk Lutut", 37, "Makkiyah"),
+        SurahSummary(46, "Al-Ahqaf", "الأحقاف", "Bukit-Bukit Pasir", 35, "Makkiyah"),
+        SurahSummary(47, "Muhammad", "محمد", "Nabi Muhammad", 38, "Madaniyah"),
+        SurahSummary(48, "Al-Fath", "الفتح", "Kemenangan", 29, "Madaniyah"),
+        SurahSummary(49, "Al-Hujurat", "الحجرات", "Kamar-Kamar", 18, "Madaniyah"),
+        SurahSummary(50, "Qaf", "ق", "Qaf", 45, "Makkiyah"),
+        SurahSummary(51, "Az-Zariyat", "الذاريات", "Angin yang Menerbangkan", 60, "Makkiyah"),
+        SurahSummary(52, "At-Tur", "الطور", "Bukit Tur", 49, "Makkiyah"),
+        SurahSummary(53, "An-Najm", "النجم", "Bintang", 62, "Makkiyah"),
+        SurahSummary(54, "Al-Qamar", "القمر", "Bulan", 55, "Makkiyah"),
+        SurahSummary(55, "Ar-Rahman", "الرحمن", "Yang Maha Pengasih", 78, "Madaniyah"),
+        SurahSummary(56, "Al-Waqi'ah", "الواقعة", "Hari Kiamat", 96, "Makkiyah"),
+        SurahSummary(57, "Al-Hadid", "الحديد", "Besi", 29, "Madaniyah"),
+        SurahSummary(58, "Al-Mujadalah", "المجادلة", "Gugatan", 22, "Madaniyah"),
+        SurahSummary(59, "Al-Hasyr", "الحشر", "Pengusiran", 24, "Madaniyah"),
+        SurahSummary(60, "Al-Mumtahanah", "الممتحنة", "Wanita yang Diuji", 13, "Madaniyah"),
+        SurahSummary(61, "As-Saff", "الصف", "Barisan", 14, "Madaniyah"),
+        SurahSummary(62, "Al-Jumu'ah", "الجمعة", "Jumat", 11, "Madaniyah"),
+        SurahSummary(63, "Al-Munafiqun", "المنافقون", "Orang-Orang Munafik", 11, "Madaniyah"),
+        SurahSummary(64, "At-Taghabun", "التغابن", "Hari Dinampakkan Kesalahan", 18, "Madaniyah"),
+        SurahSummary(65, "At-Talaq", "الطلاق", "Talak", 12, "Madaniyah"),
+        SurahSummary(66, "At-Tahrim", "التحريم", "Mengharamkan", 12, "Madaniyah"),
+        SurahSummary(67, "Al-Mulk", "الملك", "Kerajaan", 30, "Makkiyah"),
+        SurahSummary(68, "Al-Qalam", "القلم", "Pena", 52, "Makkiyah"),
+        SurahSummary(69, "Al-Haqqah", "الحاقة", "Hari Kiamat", 52, "Makkiyah"),
+        SurahSummary(70, "Al-Ma'arij", "المعارج", "Tempat Naik", 44, "Makkiyah"),
+        SurahSummary(71, "Nuh", "نوح", "Nabi Nuh", 28, "Makkiyah"),
+        SurahSummary(72, "Al-Jinn", "الجن", "Jin", 28, "Makkiyah"),
+        SurahSummary(73, "Al-Muzzammil", "المزمل", "Orang yang Berselimut", 20, "Makkiyah"),
+        SurahSummary(74, "Al-Muddassir", "المدثر", "Orang yang Berkemul", 56, "Makkiyah"),
+        SurahSummary(75, "Al-Qiyamah", "القيامة", "Hari Kiamat", 40, "Makkiyah"),
+        SurahSummary(76, "Al-Insan", "الإنسان", "Manusia", 31, "Madaniyah"),
+        SurahSummary(77, "Al-Mursalat", "المرسلات", "Malaikat yang Diutus", 50, "Makkiyah"),
+        SurahSummary(78, "An-Naba'", "النبأ", "Berita Besar", 40, "Makkiyah"),
+        SurahSummary(79, "An-Nazi'at", "النازعات", "Malaikat yang Mencabut", 46, "Makkiyah"),
+        SurahSummary(80, "'Abasa", "عبس", "Ia Bermuka Masam", 42, "Makkiyah"),
+        SurahSummary(81, "At-Takwir", "التكوير", "Menggulung", 29, "Makkiyah"),
+        SurahSummary(82, "Al-Infitar", "الإنفطار", "Terbelah", 19, "Makkiyah"),
+        SurahSummary(83, "Al-Mutaffifin", "المطففين", "Orang-Orang Curang", 36, "Makkiyah"),
+        SurahSummary(84, "Al-Insyiqaq", "الإنشقاق", "Terbelah", 25, "Makkiyah"),
+        SurahSummary(85, "Al-Buruj", "البروج", "Gugusan Bintang", 22, "Makkiyah"),
+        SurahSummary(86, "At-Tariq", "الطارق", "Yang Datang di Malam Hari", 17, "Makkiyah"),
+        SurahSummary(87, "Al-A'la", "الأعلى", "Yang Paling Tinggi", 19, "Makkiyah"),
+        SurahSummary(88, "Al-Ghasyiyah", "الغاشية", "Hari Pembalasan", 26, "Makkiyah"),
+        SurahSummary(89, "Al-Fajr", "الفجر", "Fajar", 30, "Makkiyah"),
+        SurahSummary(90, "Al-Balad", "البلد", "Negeri", 20, "Makkiyah"),
+        SurahSummary(91, "Asy-Syams", "الشمس", "Matahari", 15, "Makkiyah"),
+        SurahSummary(92, "Al-Lail", "الليل", "Malam", 21, "Makkiyah"),
+        SurahSummary(93, "Ad-Dhuha", "الضحى", "Waktu Dhuha", 11, "Makkiyah"),
+        SurahSummary(94, "Al-Insyirah", "الشرح", "Kelapangan", 8, "Makkiyah"),
+        SurahSummary(95, "At-Tin", "التين", "Buah Tin", 8, "Makkiyah"),
+        SurahSummary(96, "Al-'Alaq", "العلق", "Segumpal Darah", 19, "Makkiyah"),
+        SurahSummary(97, "Al-Qadr", "القدر", "Kemuliaan", 5, "Makkiyah"),
+        SurahSummary(98, "Al-Bayyinah", "البينة", "Pembuktian", 8, "Madaniyah"),
+        SurahSummary(99, "Az-Zalzalah", "الزلزلة", "Kegoncangan", 8, "Madaniyah"),
+        SurahSummary(100, "Al-'Adiyat", "العاديات", "Kuda Perang yang Berlari", 11, "Makkiyah"),
+        SurahSummary(101, "Al-Qari'ah", "القارعة", "Hari Kiamat", 11, "Makkiyah"),
+        SurahSummary(102, "At-Takasur", "التكاثر", "Bermegah-Megahan", 8, "Makkiyah"),
+        SurahSummary(103, "Al-'Asr", "العصر", "Masa", 3, "Makkiyah"),
+        SurahSummary(104, "Al-Humazah", "الهمزة", "Pengumpat", 9, "Makkiyah"),
+        SurahSummary(105, "Al-Fil", "الفيل", "Gajah", 5, "Makkiyah"),
+        SurahSummary(106, "Quraisy", "قريش", "Suku Quraisy", 4, "Makkiyah"),
+        SurahSummary(107, "Al-Ma'un", "الماعون", "Barang Berguna", 7, "Makkiyah"),
+        SurahSummary(108, "Al-Kausar", "الكوثر", "Nikmat Berlimpah", 3, "Makkiyah"),
+        SurahSummary(109, "Al-Kafirun", "الكافرون", "Orang-Orang Kafir", 6, "Makkiyah"),
+        SurahSummary(110, "An-Nasr", "النصر", "Pertolongan", 3, "Madaniyah"),
+        SurahSummary(111, "Al-Lahab", "المسد", "Gejolak Api", 5, "Makkiyah"),
+        SurahSummary(112, "Al-Ikhlas", "الإخلاص", "Ikhlas", 4, "Makkiyah"),
+        SurahSummary(113, "Al-Falaq", "الفلق", "Waktu Subuh", 5, "Makkiyah"),
+        SurahSummary(114, "An-Nas", "الناس", "Umat Manusia", 6, "Makkiyah")
+    )
+
+    val offlineSurahAyahs: Map<Int, List<AyahItem>> = mapOf(
+        1 to listOf(
+            AyahItem(1, "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ", "Dengan nama Allah Yang Maha Pengasih, Maha Penyayang.", "Bismillāhir-raḥmānir-raḥīm"),
+            AyahItem(2, "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ", "Segala puji bagi Allah, Tuhan seluruh alam,", "Al-ḥamdu lillāhi rabbil-‘ālamīn"),
+            AyahItem(3, "الرَّحْمَٰنِ الرَّحِيمِ", "Yang Maha Pengasih, Maha Penyayang,", "Ar-raḥmānir-raḥīm"),
+            AyahItem(4, "مَالِكِ يَوْمِ الدِّينِ", "Pemilik hari pembalasan.", "Māliki yaumid-dīn"),
+            AyahItem(5, "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ", "Hanya kepada Engkaulah kami menyembah dan hanya kepada Engkaulah kami mohon pertolongan.", "Iyyāka na‘budu wa iyyāka nasta‘īn"),
+            AyahItem(6, "اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ", "Tunjukilah kami jalan yang lurus,", "Ihdinaṣ-ṣirāṭal-mustaqīm"),
+            AyahItem(7, "صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ", "(yaitu) jalan orang-orang yang telah Engkau beri nikmat kepadanya; bukan (jalan) mereka yang dimurkai, dan bukan (pula jalan) mereka yang sesat.", "Ṣirāṭallażīna an‘amta ‘alaihim gairil-magḍūbi ‘alaihim wa laḍ-ḍāllīn")
+        ),
+        55 to listOf(
+            AyahItem(1, "الرَّحْمَٰنُ", "(Allah) Yang Maha Pengasih,", "Ar-raḥmān"),
+            AyahItem(2, "عَلَّمَ الْقُرْآنَ", "Yang telah mengajarkan Al-Qur'an.", "‘Allamal-qur’ān"),
+            AyahItem(3, "خَلَقَ الْإِنسَانَ", "Dia menciptakan manusia,", "Khalaqal-insān"),
+            AyahItem(4, "عَلَّمَهُ الْبَيَانَ", "mengajarnya pandai berbicara.", "‘Allamahul-bayān"),
+            AyahItem(13, "فَبِأَيِّ آلَاءِ رَبِّكُمَا تُكَذِّبَانِ", "Maka nikmat Tuhanmu yang manakah yang kamu dustakan?", "Fabi’ayyi ālā’i rabbikumā tukażżibān"),
+            AyahItem(60, "هَلْ جَزَاءُ الْإِحْسَانِ إِلَّا الْإِحْسَانُ", "Tidak ada balasan untuk kebaikan selain kebaikan (pula).", "Hal jazā’ul-iḥsāni illal-iḥsān")
+        ),
+        93 to listOf(
+            AyahItem(1, "وَالضُّحَىٰ", "Demi waktu dhuha (ketika matahari naik sepenggalah),", "Waḍ-ḍuḥā"),
+            AyahItem(2, "وَاللَّيْلِ إِذَا سَجَىٰ", "dan demi malam apabila telah sunyi,", "Wal-laili iżā sajā"),
+            AyahItem(3, "مَا وَدَّعَكَ رَبُّكَ وَمَا قَلَىٰ", "Tuhanmu tidak meninggalkan engkau (Muhammad) dan tidak (pula) membencimu,", "Mā wadda‘aka rabbuka wa mā qalā"),
+            AyahItem(4, "وَلَلْآخِرَةُ خَيْرٌ لَّكَ مِنَ الْأُولَىٰ", "dan sungguh, yang kemudian itu lebih baik bagimu daripada yang permulaan.", "Wa lal-ākhiratu khairul laka minal-ūlā"),
+            AyahItem(5, "وَلَسَوْفَ يُعْطِيكَ رَبُّكَ فَتَرْضَىٰ", "Dan sungguh, kelak Tuhanmu pasti memberikan karunia-Nya kepadamu, sehingga engkau menjadi puas.", "Wa lasaufa yu‘ṭīka rabbuka fatarḍā"),
+            AyahItem(6, "أَلَمْ يَجِدْكَ يَتِيمًا فَآوَىٰ", "Bukankah Dia mendapatimu sebagai seorang yatim, lalu Dia melindungimu?", "Alam yajidka yatīman fa’āwā"),
+            AyahItem(7, "وَوَجَدَكَ ضَالًّا فَهَدَىٰ", "Dan Dia mendapatimu sebagai seorang yang bingung, lalu Dia memberikan petunjuk,", "Wa wajadaka ḍāllan fahadā"),
+            AyahItem(8, "وَوَجَدَكَ عَائِلًا فَأَغْنَىٰ", "dan Dia mendapatimu sebagai seorang yang kekurangan, lalu Dia memberikan kecukupan.", "Wa wajadaka ‘ā’ilan fa’agnā"),
+            AyahItem(9, "فَأَمَّا الْيَتِيمَ فَلَا تَقْهَرْ", "Maka terhadap anak yatim janganlah engkau berlaku sewenang-wenang.", "Fa’ammal-yatīma falā taqhar"),
+            AyahItem(10, "وَأَمَّا السَّائِلَ فَلَا تَنْهَرْ", "Dan terhadap orang yang meminta-minta janganlah engkau menghardik(nya).", "Wa ammas-sā’ila falā tanhar"),
+            AyahItem(11, "وَأَمَّا بِنِعْمَةِ رَبِّكَ فَحَدِّثْ", "Dan terhadap nikmat Tuhanmu hendaklah engkau nyatakan (dengan bersyukur).", "Wa ammā bini‘mati rabbika faḥaddiṡ")
+        ),
+        94 to listOf(
+            AyahItem(1, "أَلَمْ نَشْرَحْ لَكَ صَدْرَكَ", "Bukankah Kami telah melapangkan dadamu (Muhammad)?", "Alam nasyraḥ laka ṣadrak"),
+            AyahItem(2, "وَوَضَعْنَا عَنكَ وِزْرَكَ", "Dan Kami pun telah menurunkan bebanmu darimu,", "Wa waḍa‘nā ‘anka wizrak"),
+            AyahItem(3, "الَّذِي أَنقَضَ ظَهْرَكَ", "yang memberatkan punggungmu,", "Allażī anqaḍa ẓahrak"),
+            AyahItem(4, "وَرَفَعْنَا لَكَ ذِكْرَكَ", "dan Kami tinggikan sebutan (nama)mu bagimu.", "Wa rafa‘nā laka żikrak"),
+            AyahItem(5, "فَإِنَّ مَعَ الْعُسْرِ يُسْرًا", "Maka sesungguhnya bersama kesulitan ada kemudahan,", "Fa’inna ma‘al-‘usri yusrā"),
+            AyahItem(6, "إِنَّ مَعَ الْعُسْرِ يُسْرًا", "sesungguhnya bersama kesulitan ada kemudahan.", "Inna ma‘al-‘usri yusrā"),
+            AyahItem(7, "فَإِذَا فَرَغْتَ فَانصَبْ", "Maka apabila engkau telah selesai (dari sesuatu urusan), tetaplah bekerja keras (untuk urusan yang lain),", "Fa’iżā faragta fanṣab"),
+            AyahItem(8, "وَإِلَىٰ رَبِّكَ فَارْغَب", "dan hanya kepada Tuhanmulah engkau berharap.", "Wa ilā rabbika fargab")
+        ),
+        103 to listOf(
+            AyahItem(1, "وَالْعَصْرِ", "Demi masa,", "Wal-‘aṣr"),
+            AyahItem(2, "إِنَّ الْإِنسَانَ لَفِي خُسْرٍ", "sungguh, manusia berada dalam kerugian,", "Innal-insāna lafī khusr"),
+            AyahItem(3, "إِلَّا الَّذِينَ آمَنُوا وَعَمِلُوا الصَّالِحَاتِ وَتَوَاصَوْا بِالْحَقِّ وَتَوَاصَوْا بِالصَّبْرِ", "kecuali orang-orang yang beriman dan mengerjakan kebajikan serta saling menasihati untuk kebenaran dan saling menasihati untuk kesabaran.", "Illallażīna āmanū wa ‘amiluṣ-ṣāliḥāti wa tawāṣau bil-ḥaqqi wa tawāṣau biṣ-ṣabr")
+        ),
+        108 to listOf(
+            AyahItem(1, "إِنَّا أَعْطَيْنَاكَ الْكَوْثَرَ", "Sungguh, Kami telah memberimu (Muhammad) nikmat yang banyak.", "Innā a‘ṭainākal-kauṡar"),
+            AyahItem(2, "فَصَلِّ لِرَبِّكَ وَانْحَرْ", "Maka laksanakanlah salat karena Tuhanmu, dan berkurbanlah (sebagai ibadah dan mendekatkan diri kepada Allah).", "Faṣalli lirabbika wanḥar"),
+            AyahItem(3, "إِنَّ شَانِئَكَ هُوَ الْأَبْتَرُ", "Sungguh, orang-orang yang membencimu dialah yang terputus (dari rahmat Allah).", "Inna syāni’aka huwal-abtar")
+        ),
+        112 to listOf(
+            AyahItem(1, "قُلْ هُوَ اللَّهُ أَحَدٌ", "Katakanlah (Muhammad), \"Dialah Allah, Yang Maha Esa.\"", "Qul huwallāhu aḥad"),
+            AyahItem(2, "اللَّهُ الصَّمَدُ", "Allah tempat meminta segala sesuatu.", "Allāhuṣ-ṣamad"),
+            AyahItem(3, "لَمْ يَلِدْ وَلَمْ يُولَدْ", "(Allah) tidak beranak dan tidak pula diperanakkan.", "Lam yalid wa lam yūlad"),
+            AyahItem(4, "وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ", "Dan tidak ada sesuatu yang setara dengan Dia.", "Wa lam yakul lahū kufuwan aḥad")
+        ),
+        113 to listOf(
+            AyahItem(1, "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ", "Katakanlah, \"Aku berlindung kepada Tuhan yang menguasai subuh (fajar),", "Qul a‘ūżu birabbil-falaq"),
+            AyahItem(2, "مِن شَرِّ مَا خَلَقَ", "dari kejahatan (makhluk yang) Dia ciptakan,", "Min syarri mā khalaq"),
+            AyahItem(3, "وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ", "dan dari kejahatan malam apabila telah gelap gulita,", "Wa min syarri gāsiqin iżā waqab"),
+            AyahItem(4, "وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ", "dan dari kejahatan (perempuan-perempuan) penyihir yang meniup pada buhul-buhul (talinya),", "Wa min syarrin-naffāṡāti fil-‘uqad"),
+            AyahItem(5, "وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ", "dan dari kejahatan orang yang dengki apabila dia dengki.\"", "Wa min syarri ḥāsidin iżā ḥasad")
+        ),
+        114 to listOf(
+            AyahItem(1, "قُلْ أَعُوذُ بِرَبِّ النَّاسِ", "Katakanlah, \"Aku berlindung kepada Tuhannya manusia,", "Qul a‘ūżu birabbin-nās"),
+            AyahItem(2, "مَلِكِ النَّاسِ", "Raja manusia,", "Malikin-nās"),
+            AyahItem(3, "إِلَٰهِ النَّاسِ", "sembahan manusia,", "Ilāhin-nās"),
+            AyahItem(4, "مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ", "dari kejahatan (bisikan) setan yang bersembunyi,", "Min syarril-waswāsil-khannās"),
+            AyahItem(5, "الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ", "yang membisikkan (kejahatan) ke dalam dada manusia,", "Allażī yuwaswisu fī ṣudūrin-nās"),
+            AyahItem(6, "مِنَ الْجِنَّةِ وَالنَّاسِ", "dari (golongan) jin dan manusia.\"", "Minal-jinnati wan-nās")
+        )
+    )
+}

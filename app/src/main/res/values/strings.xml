@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">STUDY ROOM</string>
+    <string name="home_brand_title">STUDY ROOM</string>
+    <string name="cd_profile">Profile and Location Settings</string>
+    <string name="cd_adzan_toggle">Toggle prayer timetable and adzan reminders</string>
+    <string name="cd_refresh_ayat">Next daily verse</string>
+    <string name="cd_bookmark_ayat">Bookmark verse</string>
+    <string name="cd_back">Back</string>
+    <string name="label_adzan">Adzan</string>
+    <string name="label_ayat_hari_ini">Ayat of the Day</string>
+    <string name="menu_alquran">Al Qur\'an</string>
+    <string name="menu_doa">Do\'a</string>
+    <string name="menu_dzikir">Dzikir</string>
+    <string name="menu_groups">Groups</string>
+    <string name="menu_selengkapnya">More</string>
+</resources>
