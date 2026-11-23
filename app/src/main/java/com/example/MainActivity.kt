@@ -15,15 +15,26 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.data.local.ExamGroundDefaults
+import com.example.ui.screens.CreateExamScreen
 import com.example.ui.screens.DuaScreen
 import com.example.ui.screens.DzikirScreen
+import com.example.ui.screens.ExamAccountScreen
+import com.example.ui.screens.ExamGroundScreen
+import com.example.ui.screens.ExamHscSubjectsScreen
+import com.example.ui.screens.ExamHubScreen
+import com.example.ui.screens.ExamPaperScreen
 import com.example.ui.screens.FocusScreen
 import com.example.ui.screens.GroupStudyRoomScreen
 import com.example.ui.screens.GroupsScreen
+import com.example.notifications.MissionScheduler
 import com.example.ui.screens.HomeScreen
+import com.example.ui.screens.MissionScreen
 import com.example.ui.screens.MoreScreen
 import com.example.ui.screens.ProfileScreen
 import com.example.ui.screens.QuranListScreen
+import com.example.ui.screens.StoryBookReaderScreen
+import com.example.ui.screens.StoryHomeScreen
 import com.example.ui.screens.SurahDetailScreen
 import com.example.ui.screens.TrackerScreen
 import com.example.ui.theme.BanglaStrings
@@ -43,11 +54,23 @@ object AppRoutes {
     const val ROUTE_GROUP_ROOM = "group_room/{groupId}"
     const val ROUTE_FOCUS = "focus"
     const val ROUTE_TRACKER = "tracker"
+    const val ROUTE_EXAM = "exam"
+    const val ROUTE_EXAM_HSC = "exam_hsc"
+    const val ROUTE_EXAM_PAPER = "exam_paper"
+    const val ROUTE_CREATE_EXAM = "create_exam?examId={examId}"
+    const val ROUTE_EXAM_ACCOUNT = "exam_account"
+    const val ROUTE_EXAM_GROUND = "exam_ground"
+    const val ROUTE_STORY = "story"
+    const val ROUTE_STORY_READER = "story_reader/{bookId}?page={page}"
+    const val ROUTE_MISSION = "mission"
     const val ROUTE_MORE = "more"
     const val ROUTE_PROFILE = "profile"
 
     fun surahDetail(surahNumber: Int) = "surah/$surahNumber"
     fun groupRoom(groupId: String) = "group_room/$groupId"
+    fun createExam(examId: String? = null) =
+        if (examId.isNullOrBlank()) "create_exam" else "create_exam?examId=$examId"
+    fun storyReader(bookId: String, pageIndex: Int = 0) = "story_reader/$bookId?page=$pageIndex"
 }
 
 class MainActivity : ComponentActivity() {
@@ -64,7 +87,21 @@ class MainActivity : ComponentActivity() {
                 val studyRoomState by viewModel.studyRoomState.collectAsStateWithLifecycle()
                 val studyDashboardState by viewModel.studyDashboardState.collectAsStateWithLifecycle()
                 val trackerSubjects by viewModel.trackerSubjects.collectAsStateWithLifecycle()
+                val examState by viewModel.examState.collectAsStateWithLifecycle()
+                val userCreatedExams by viewModel.userCreatedExams.collectAsStateWithLifecycle()
+                val missions by viewModel.missions.collectAsStateWithLifecycle()
+                val missionLiveNotifEnabled by viewModel.missionLiveNotifEnabled.collectAsStateWithLifecycle()
                 val strings = if (prefs.appLanguage == "bn") BanglaStrings else EnglishStrings
+
+                val initialOpenRoute = intent?.getStringExtra(MissionScheduler.EXTRA_OPEN_ROUTE)
+                androidx.compose.runtime.LaunchedEffect(initialOpenRoute) {
+                    if (initialOpenRoute == MissionScheduler.ROUTE_MISSION_TARGET) {
+                        intent?.removeExtra(MissionScheduler.EXTRA_OPEN_ROUTE)
+                        navController.navigate(AppRoutes.ROUTE_MISSION) {
+                            launchSingleTop = true
+                        }
+                    }
+                }
 
                 val liveStudyingPeers = studyRoomState.groups
                     .firstOrNull { it.id == studyRoomState.activeGroupId }
@@ -92,6 +129,9 @@ class MainActivity : ComponentActivity() {
                                 onOpenDzikir = { navController.navigate(AppRoutes.ROUTE_DZIKIR) },
                                 onOpenGroups = { navController.navigate(AppRoutes.ROUTE_GROUPS) },
                                 onOpenTracker = { navController.navigate(AppRoutes.ROUTE_TRACKER) },
+                                onOpenExam = { navController.navigate(AppRoutes.ROUTE_EXAM) },
+                                onOpenStory = { navController.navigate(AppRoutes.ROUTE_STORY) },
+                                onOpenMission = { navController.navigate(AppRoutes.ROUTE_MISSION) },
                                 onOpenMore = { navController.navigate(AppRoutes.ROUTE_MORE) },
                                 onCycleDailyAyah = viewModel::cycleDailyAyah,
                                 onToggleAyahBookmark = viewModel::toggleAyahBookmark,
@@ -248,6 +288,181 @@ class MainActivity : ComponentActivity() {
                                 onAddChapter = viewModel::addTrackerChapter,
                                 onDeleteChapter = viewModel::deleteTrackerChapter,
                                 onAddSubject = viewModel::addTrackerSubject
+                            )
+                        }
+
+                        composable(AppRoutes.ROUTE_EXAM) {
+                            val publishedCount = userCreatedExams.count { it.isPublished } +
+                                ExamGroundDefaults.defaultCommunityExams.size
+                            ExamHubScreen(
+                                trackerSubjects = trackerSubjects,
+                                examBestScores = prefs.examBestScores,
+                                wrongQuestionIds = prefs.wrongExamQuestionIds,
+                                totalExamsTaken = prefs.totalExamsTaken,
+                                publishedGroundCount = publishedCount,
+                                userCreatedExamsCount = userCreatedExams.size,
+                                onBack = { navController.popBackStack() },
+                                onOpenHscSubjects = { navController.navigate(AppRoutes.ROUTE_EXAM_HSC) },
+                                onOpenTracker = { navController.navigate(AppRoutes.ROUTE_TRACKER) },
+                                onStartWrongAnswersExam = {
+                                    if (viewModel.startWrongAnswersExam()) {
+                                        navController.navigate(AppRoutes.ROUTE_EXAM_PAPER)
+                                    }
+                                },
+                                onOpenCreateExam = { navController.navigate(AppRoutes.createExam()) },
+                                onOpenExamAccount = { navController.navigate(AppRoutes.ROUTE_EXAM_ACCOUNT) },
+                                onOpenExamGround = { navController.navigate(AppRoutes.ROUTE_EXAM_GROUND) }
+                            )
+                        }
+
+                        composable(
+                            route = AppRoutes.ROUTE_CREATE_EXAM,
+                            arguments = listOf(
+                                navArgument("examId") {
+                                    type = NavType.StringType
+                                    nullable = true
+                                    defaultValue = null
+                                }
+                            )
+                        ) { backStackEntry ->
+                            val editExamId = backStackEntry.arguments?.getString("examId")
+                            val initialExam = editExamId?.let { id ->
+                                userCreatedExams.firstOrNull { it.id == id }
+                            }
+                            CreateExamScreen(
+                                trackerSubjects = trackerSubjects,
+                                extraSubjectNames = userCreatedExams.map { it.subjectName }.distinct(),
+                                initialExam = initialExam,
+                                authorName = prefs.userName,
+                                authorBatch = studyDashboardState.batchTag,
+                                onBack = { navController.popBackStack() },
+                                onDeleteExistingExam = initialExam?.let { existing ->
+                                    {
+                                        viewModel.deleteCustomExam(existing.id)
+                                        navController.popBackStack()
+                                    }
+                                },
+                                onSaveOrPublish = { exam, publishToGround ->
+                                    viewModel.saveOrPublishCustomExam(exam)
+                                    navController.popBackStack()
+                                    if (publishToGround) {
+                                        navController.navigate(AppRoutes.ROUTE_EXAM_GROUND)
+                                    } else if (initialExam == null) {
+                                        navController.navigate(AppRoutes.ROUTE_EXAM_ACCOUNT)
+                                    }
+                                }
+                            )
+                        }
+
+                        composable(AppRoutes.ROUTE_EXAM_ACCOUNT) {
+                            ExamAccountScreen(
+                                userName = prefs.userName,
+                                batchTag = studyDashboardState.batchTag,
+                                totalExamsTaken = prefs.totalExamsTaken,
+                                userCreatedExams = userCreatedExams,
+                                onBack = { navController.popBackStack() },
+                                onCreateExamClick = { navController.navigate(AppRoutes.createExam()) },
+                                onTogglePublish = viewModel::toggleCustomExamPublished,
+                                onDeleteExam = viewModel::deleteCustomExam,
+                                onTakeCustomExam = { exam ->
+                                    viewModel.startCustomExam(exam)
+                                    navController.navigate(AppRoutes.ROUTE_EXAM_PAPER)
+                                },
+                                onEditExam = { exam ->
+                                    navController.navigate(AppRoutes.createExam(exam.id))
+                                },
+                                onUpdateExam = viewModel::saveOrPublishCustomExam
+                            )
+                        }
+
+                        composable(AppRoutes.ROUTE_EXAM_GROUND) {
+                            ExamGroundScreen(
+                                userCreatedExams = userCreatedExams,
+                                onBack = { navController.popBackStack() },
+                                onCreateExamClick = { navController.navigate(AppRoutes.createExam()) },
+                                onEnterExam = { exam ->
+                                    viewModel.startCustomExam(exam)
+                                    navController.navigate(AppRoutes.ROUTE_EXAM_PAPER)
+                                }
+                            )
+                        }
+
+                        composable(AppRoutes.ROUTE_EXAM_HSC) {
+                            ExamHscSubjectsScreen(
+                                subjects = trackerSubjects,
+                                examBestScores = prefs.examBestScores,
+                                onBack = { navController.popBackStack() },
+                                onSelectChapterExam = { subject, chapter ->
+                                    viewModel.startChapterExam(subject, chapter)
+                                    navController.navigate(AppRoutes.ROUTE_EXAM_PAPER)
+                                }
+                            )
+                        }
+
+                        composable(AppRoutes.ROUTE_EXAM_PAPER) {
+                            ExamPaperScreen(
+                                examState = examState,
+                                onBack = {
+                                    viewModel.stopExamTimer()
+                                    navController.popBackStack()
+                                },
+                                onSelectOption = viewModel::selectExamOption,
+                                onSubmitExam = viewModel::submitExam,
+                                onShowAnswers = viewModel::showExamAnswers,
+                                onShowResultPaper = viewModel::showExamResultPaper,
+                                onRetakeExam = viewModel::retakeExam,
+                                onSwitchPaperStyle = viewModel::setExamPaperStyle
+                            )
+                        }
+
+                        composable(AppRoutes.ROUTE_STORY) {
+                            StoryHomeScreen(
+                                userName = prefs.userName,
+                                lastReadPages = prefs.storyLastReadPages,
+                                bookmarkedPages = prefs.storyBookmarkedPages,
+                                onBack = { navController.popBackStack() },
+                                onOpenBook = { bookId, pageIndex ->
+                                    navController.navigate(AppRoutes.storyReader(bookId, pageIndex))
+                                }
+                            )
+                        }
+
+                        composable(
+                            route = AppRoutes.ROUTE_STORY_READER,
+                            arguments = listOf(
+                                navArgument("bookId") { type = NavType.StringType },
+                                navArgument("page") {
+                                    type = NavType.IntType
+                                    defaultValue = 0
+                                }
+                            )
+                        ) { backStackEntry ->
+                            val bookId = backStackEntry.arguments?.getString("bookId").orEmpty()
+                            val startPage = backStackEntry.arguments?.getInt("page") ?: 0
+                            StoryBookReaderScreen(
+                                bookId = bookId,
+                                initialPageIndex = startPage,
+                                bookmarkedPages = prefs.storyBookmarkedPages,
+                                onBack = { navController.popBackStack() },
+                                onPageChanged = viewModel::updateStoryLastReadPage,
+                                onToggleBookmarkPage = viewModel::toggleStoryBookmarkPage
+                            )
+                        }
+
+                        composable(AppRoutes.ROUTE_MISSION) {
+                            MissionScreen(
+                                missions = missions,
+                                liveNotifEnabled = missionLiveNotifEnabled,
+                                trackerSubjects = trackerSubjects,
+                                onBack = { navController.popBackStack() },
+                                onSaveMission = viewModel::saveMission,
+                                onToggleMissionCompleted = viewModel::toggleMissionCompleted,
+                                onToggleMissionTag = viewModel::toggleMissionPrepTag,
+                                onToggleMissionAlarm = viewModel::toggleMissionAlarm,
+                                onDeleteMission = viewModel::deleteMission,
+                                onToggleLiveNotification = viewModel::setMissionLiveNotifEnabled,
+                                onCopyDayToNext7Days = viewModel::copyDayMissionsToNext7Days,
+                                onSyncWidgetNow = viewModel::syncMissionWidgetAndNotifications
                             )
                         }
 

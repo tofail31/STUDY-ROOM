@@ -1,11 +1,6 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -29,25 +25,28 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DoneAll
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -105,15 +104,19 @@ fun TrackerScreen(
     onBack: () -> Unit,
     onToggleTag: (subjectId: String, chapterId: String, tag: PrepQuestionTag) -> Unit,
     onToggleAllInChapter: (subjectId: String, chapterId: String) -> Unit,
-    onAddChapter: (subjectId: String, title: String) -> Unit,
+    onAddChapter: (subjectId: String, paper: Int, title: String) -> Unit,
     onDeleteChapter: (subjectId: String, chapterId: String) -> Unit,
     onAddSubject: (name: String, colorHex: Long, firstChapter: String) -> Unit
 ) {
     val s = LocalAppStrings.current
-    var expandedSubjectId by remember { mutableStateOf<String?>(null) }
-    var chapterFilterIdx by remember { mutableIntStateOf(0) } // 0 = All, 1 = Pending, 2 = Done
+    var activeSubjectId by remember { mutableStateOf<String?>(null) }
+    var selectedPaper by remember { mutableIntStateOf(1) } // 1 = 1st Paper, 2 = 2nd Paper
     var showAddSubjectDialog by remember { mutableStateOf(false) }
     var addChapterForSubject by remember { mutableStateOf<TrackerSubject?>(null) }
+
+    val activePopupSubject = remember(activeSubjectId, subjects) {
+        activeSubjectId?.let { id -> subjects.firstOrNull { it.id == id } }
+    }
 
     val totalCheckboxes = subjects.sumOf { it.totalCheckboxes }.coerceAtLeast(1)
     val completedCheckboxes = subjects.sumOf { it.completedCheckboxes }
@@ -301,68 +304,56 @@ fun TrackerScreen(
                     }
                 }
 
-                // Subject Grid Rows + Inline Adzan-Style Expand-Down Box per Row
+                // Subject Grid Rows
                 itemsIndexed(
                     items = subjectRows,
                     key = { idx, row -> "row_${idx}_${row.first().id}" }
                 ) { _, rowSubjects ->
-                    val expandedSubjectInRow = rowSubjects.firstOrNull { it.id == expandedSubjectId }
-
-                    Column(
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            rowSubjects.forEach { subj ->
-                                val isExpanded = subj.id == expandedSubjectId
-                                TrackerSubjectStatBox(
-                                    subject = subj,
-                                    isBangla = s.isBangla,
-                                    isExpanded = isExpanded,
-                                    onClick = {
-                                        expandedSubjectId = if (isExpanded) null else subj.id
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            repeat(columnsPerRow - rowSubjects.size) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
+                        rowSubjects.forEach { subj ->
+                            val isSelected = subj.id == activeSubjectId
+                            TrackerSubjectStatBox(
+                                subject = subj,
+                                isBangla = s.isBangla,
+                                isSelected = isSelected,
+                                onClick = {
+                                    activeSubjectId = subj.id
+                                    selectedPaper = 1
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
                         }
-
-                        // Adzan-style downward expanding box right underneath the tapped subject's row!
-                        AnimatedVisibility(
-                            visible = expandedSubjectInRow != null,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            expandedSubjectInRow?.let { activeSubj ->
-                                SubjectChaptersDropdownBox(
-                                    subject = activeSubj,
-                                    isBangla = s.isBangla,
-                                    chapterFilterIdx = chapterFilterIdx,
-                                    onSelectFilter = { chapterFilterIdx = it },
-                                    onToggleTag = { chapterId, tag ->
-                                        onToggleTag(activeSubj.id, chapterId, tag)
-                                    },
-                                    onToggleAllInChapter = { chapterId ->
-                                        onToggleAllInChapter(activeSubj.id, chapterId)
-                                    },
-                                    onAddChapterClick = { addChapterForSubject = activeSubj },
-                                    onDeleteChapter = { chapterId ->
-                                        onDeleteChapter(activeSubj.id, chapterId)
-                                    },
-                                    onCollapse = { expandedSubjectId = null }
-                                )
-                            }
+                        repeat(columnsPerRow - rowSubjects.size) {
+                            Spacer(modifier = Modifier.weight(1f))
                         }
                     }
                 }
             }
         }
+    }
+
+    // Group-entry style ModalBottomSheet popup when any subject box is clicked
+    if (activePopupSubject != null) {
+        TrackerSubjectPopupBottomSheet(
+            subject = activePopupSubject,
+            isBangla = s.isBangla,
+            selectedPaper = selectedPaper,
+            onSelectPaper = { selectedPaper = it },
+            onToggleTag = { chapterId, tag ->
+                onToggleTag(activePopupSubject.id, chapterId, tag)
+            },
+            onToggleAllInChapter = { chapterId ->
+                onToggleAllInChapter(activePopupSubject.id, chapterId)
+            },
+            onAddChapterClick = { addChapterForSubject = activePopupSubject },
+            onDeleteChapter = { chapterId ->
+                onDeleteChapter(activePopupSubject.id, chapterId)
+            },
+            onDismiss = { activeSubjectId = null }
+        )
     }
 
     if (showAddSubjectDialog) {
@@ -376,11 +367,12 @@ fun TrackerScreen(
     }
 
     addChapterForSubject?.let { targetSubj ->
+        val paperLabel = if (selectedPaper == 1) s.trackerFirstPaper else s.trackerSecondPaper
         TrackerAddChapterDialog(
-            subjectName = if (s.isBangla) targetSubj.nameBn else targetSubj.nameEn,
+            subjectName = "${if (s.isBangla) targetSubj.nameBn else targetSubj.nameEn} ($paperLabel)",
             onDismiss = { addChapterForSubject = null },
             onConfirm = { title ->
-                onAddChapter(targetSubj.id, title)
+                onAddChapter(targetSubj.id, selectedPaper, title)
                 addChapterForSubject = null
             }
         )
@@ -391,17 +383,13 @@ fun TrackerScreen(
 private fun TrackerSubjectStatBox(
     subject: TrackerSubject,
     isBangla: Boolean,
-    isExpanded: Boolean,
+    isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val s = LocalAppStrings.current
     val subjectColor = Color(subject.colorHex)
     val pct = subject.progressPercent
-    val chevronRotation by animateFloatAsState(
-        targetValue = if (isExpanded) 180f else 0f,
-        label = "subj_chevron_${subject.id}"
-    )
     val animProgress by animateFloatAsState(
         targetValue = (pct / 100f).coerceIn(0f, 1f),
         label = "subj_bar_${subject.id}"
@@ -414,14 +402,21 @@ private fun TrackerSubjectStatBox(
     } else {
         "${subject.completedCheckboxes}/${subject.totalCheckboxes} ${s.trackerDoneLabel}"
     }
+    val p1Pct = subject.paperProgressPercent(1)
+    val p2Pct = subject.paperProgressPercent(2)
+    val paperBreakdownText = if (isBangla) {
+        "১ম: ${PrayerTimeCalculator.toBanglaDigits(p1Pct.toString())}%  •  ২য়: ${PrayerTimeCalculator.toBanglaDigits(p2Pct.toString())}%"
+    } else {
+        "1st: $p1Pct%  •  2nd: $p2Pct%"
+    }
 
     NeumorphicCard(
         onClick = onClick,
         cornerRadius = 22.dp,
-        shadowElevation = if (isExpanded) 9.dp else 6.dp,
+        shadowElevation = if (isSelected) 9.dp else 6.dp,
         modifier = modifier
             .then(
-                if (isExpanded) {
+                if (isSelected) {
                     Modifier.border(
                         width = 1.6.dp,
                         color = subjectColor.copy(alpha = 0.72f),
@@ -457,18 +452,16 @@ private fun TrackerSubjectStatBox(
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.0.sp,
-                        color = if (isExpanded) subjectColor else StoneInkSecondary,
+                        color = if (isSelected) subjectColor else StoneInkSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
                 Icon(
-                    imageVector = Icons.Rounded.KeyboardArrowDown,
-                    contentDescription = "Expand $labelName",
-                    tint = if (isExpanded) subjectColor else StoneInkSecondary,
-                    modifier = Modifier
-                        .size(18.dp)
-                        .rotate(chevronRotation)
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = "Open $labelName",
+                    tint = if (isSelected) subjectColor else StoneInkSecondary,
+                    modifier = Modifier.size(18.dp)
                 )
             }
 
@@ -483,7 +476,7 @@ private fun TrackerSubjectStatBox(
                 modifier = Modifier.testTag("tracker_subject_pct_${subject.id}")
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(2.dp))
 
             Text(
                 text = subtitleText,
@@ -492,6 +485,19 @@ private fun TrackerSubjectStatBox(
                 color = StoneInkSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Text(
+                text = paperBreakdownText,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 10.sp,
+                color = subjectColor.copy(alpha = 0.9f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag("tracker_subject_papers_${subject.id}")
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -517,199 +523,223 @@ private fun TrackerSubjectStatBox(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SubjectChaptersDropdownBox(
+private fun TrackerSubjectPopupBottomSheet(
     subject: TrackerSubject,
     isBangla: Boolean,
-    chapterFilterIdx: Int,
-    onSelectFilter: (Int) -> Unit,
+    selectedPaper: Int,
+    onSelectPaper: (Int) -> Unit,
     onToggleTag: (chapterId: String, tag: PrepQuestionTag) -> Unit,
     onToggleAllInChapter: (chapterId: String) -> Unit,
     onAddChapterClick: () -> Unit,
     onDeleteChapter: (chapterId: String) -> Unit,
-    onCollapse: () -> Unit
+    onDismiss: () -> Unit
 ) {
     val s = LocalAppStrings.current
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val subjectColor = Color(subject.colorHex)
     val subjectTitle = if (isBangla) subject.nameBn else subject.nameEn
 
-    val filteredChapters = remember(subject.chapters, chapterFilterIdx) {
-        when (chapterFilterIdx) {
-            1 -> subject.chapters.filter { it.completedTags.size < PrepQuestionTag.entries.size }
-            2 -> subject.chapters.filter { it.completedTags.size == PrepQuestionTag.entries.size }
-            else -> subject.chapters
-        }
+    val paperChapters = remember(subject.chapters, selectedPaper) {
+        subject.chaptersForPaper(selectedPaper)
     }
+    val p1Pct = subject.paperProgressPercent(1)
+    val p2Pct = subject.paperProgressPercent(2)
+    val activePaperPct = if (selectedPaper == 1) p1Pct else p2Pct
+    val activePaperDone = subject.paperCompletedCheckboxes(selectedPaper)
+    val activePaperTotal = subject.paperTotalCheckboxes(selectedPaper)
+    val activePaperLabel = if (selectedPaper == 1) s.trackerFirstPaper else s.trackerSecondPaper
 
-    NeumorphicCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag("tracker_expanded_${subject.id}"),
-        cornerRadius = 24.dp,
-        shadowElevation = 9.dp
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = StoneBackground,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 20.dp)
+                .testTag("tracker_popup_${subject.id}")
         ) {
-            // Dropdown Header Bar
+            // Popup Header: Subject Dot + Name + Summary Stats (mirrors GroupEnterPreviewBottomSheet header)
             Row(
-                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(11.dp)
-                            .clip(CircleShape)
-                            .background(subjectColor)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = subjectTitle,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = StoneInkPrimary
-                        )
-                        val summary = if (isBangla) {
-                            "${PrayerTimeCalculator.toBanglaDigits(subject.progressPercent.toString())}% • ${PrayerTimeCalculator.toBanglaDigits("${subject.completedCheckboxes}/${subject.totalCheckboxes}")} ${s.trackerDoneLabel}"
-                        } else {
-                            "${subject.progressPercent}% • ${subject.completedCheckboxes}/${subject.totalCheckboxes} ${s.trackerDoneLabel}"
-                        }
-                        Text(
-                            text = summary,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = subjectColor
-                        )
-                    }
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(StonePanelInner)
-                            .clickable(onClick = onAddChapterClick)
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                            .testTag("tracker_add_chapter_${subject.id}"),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = s.trackerAddChapter,
-                            tint = StoneInkPrimary,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text(
-                            text = s.trackerAddChapter,
-                            fontFamily = PlusJakartaSansFamily,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            color = StoneInkPrimary
-                        )
-                    }
-
-                    IconButton(
-                        onClick = onCollapse,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Close,
-                            contentDescription = "Collapse",
-                            tint = StoneInkSecondary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .clip(CircleShape)
+                        .background(subjectColor)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = subjectTitle,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = StoneInkPrimary
+                )
             }
+            Spacer(modifier = Modifier.height(4.dp))
+            val summary = if (isBangla) {
+                "$activePaperLabel • ${PrayerTimeCalculator.toBanglaDigits(activePaperPct.toString())}% (${PrayerTimeCalculator.toBanglaDigits("$activePaperDone/$activePaperTotal")} ${s.trackerDoneLabel}) • ${PrayerTimeCalculator.toBanglaDigits("${paperChapters.size}")} ${s.trackerChaptersLabel}"
+            } else {
+                "$activePaperLabel • $activePaperPct% ($activePaperDone/$activePaperTotal ${s.trackerDoneLabel}) • ${paperChapters.size} ${s.trackerChaptersLabel}"
+            }
+            Text(
+                text = summary,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = subjectColor
+            )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Quick Filter Chips inside Expanded Box
+            // 1st Paper | 2nd Paper Segmented Switcher (mirrors Group preview chips)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val filterLabels = if (isBangla) listOf("সব", "বাকি", "সম্পন্ন") else listOf("All", "Pending", "Done")
-                filterLabels.forEachIndexed { idx, label ->
-                    NeumorphicPillButton(
-                        text = label,
-                        selected = chapterFilterIdx == idx,
-                        onClick = { onSelectFilter(idx) },
-                        modifier = Modifier.weight(1f)
-                    )
+                val p1Text = if (isBangla) {
+                    "${s.trackerFirstPaper} • ${PrayerTimeCalculator.toBanglaDigits(p1Pct.toString())}%"
+                } else {
+                    "${s.trackerFirstPaper} • $p1Pct%"
                 }
+                val p2Text = if (isBangla) {
+                    "${s.trackerSecondPaper} • ${PrayerTimeCalculator.toBanglaDigits(p2Pct.toString())}%"
+                } else {
+                    "${s.trackerSecondPaper} • $p2Pct%"
+                }
+                NeumorphicPillButton(
+                    text = p1Text,
+                    selected = selectedPaper == 1,
+                    onClick = { onSelectPaper(1) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("tracker_paper_tab_1_${subject.id}")
+                )
+                NeumorphicPillButton(
+                    text = p2Text,
+                    selected = selectedPaper == 2,
+                    onClick = { onSelectPaper(2) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("tracker_paper_tab_2_${subject.id}")
+                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = StoneDivider, thickness = 1.dp)
-            Spacer(modifier = Modifier.height(10.dp))
 
-            // Column Guide: Left Chapter Name | Right Prep Tags
-            Row(
+            // Scrollable Chapter Preparation Card inside ModalBottomSheet (same layout pattern as Group rules/description cards)
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState())
             ) {
-                Text(
-                    text = if (isBangla) "অধ্যায়" else "CHAPTER",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp,
-                    color = StoneInkSecondary,
-                    modifier = Modifier.weight(0.45f)
-                )
-                Text(
-                    text = if (isBangla) "প্রস্তুতি (ক খ গ ঘ • CQ • MCQ)" else "PREP (ক খ গ ঘ • CQ • MCQ)",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.6.sp,
-                    color = StoneInkSecondary,
-                    modifier = Modifier.weight(0.55f)
-                )
-            }
+                NeumorphicCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 20.dp,
+                    shadowElevation = 5.dp
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp)
+                    ) {
+                        // Column Guide: Left Chapter Name | Right Prep Tags
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (isBangla) "অধ্যায়" else "CHAPTER",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.8.sp,
+                                color = StoneInkSecondary,
+                                modifier = Modifier.weight(0.45f)
+                            )
+                            Text(
+                                text = if (isBangla) "প্রস্তুতি (ক খ গ ঘ • CQ • MCQ)" else "PREP (ক খ গ ঘ • CQ • MCQ)",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.6.sp,
+                                color = StoneInkSecondary,
+                                modifier = Modifier.weight(0.55f)
+                            )
+                        }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        HorizontalDivider(color = StoneDivider, thickness = 1.dp)
+                        Spacer(modifier = Modifier.height(8.dp))
 
-            if (filteredChapters.isEmpty()) {
-                Text(
-                    text = if (isBangla) "এই ফিল্টারে কোনো অধ্যায় নেই।" else "No chapters match this filter.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = StoneInkSecondary,
-                    modifier = Modifier.padding(vertical = 14.dp)
-                )
-            } else {
-                filteredChapters.forEachIndexed { index, chapter ->
-                    ChapterPrepRow(
-                        index = index + 1,
-                        chapter = chapter,
-                        subjectColor = subjectColor,
-                        canDelete = subject.chapters.size > 1,
-                        isBangla = isBangla,
-                        onToggleTag = { tag -> onToggleTag(chapter.id, tag) },
-                        onToggleAll = { onToggleAllInChapter(chapter.id) },
-                        onDelete = { onDeleteChapter(chapter.id) }
-                    )
-                    if (index < filteredChapters.lastIndex) {
-                        HorizontalDivider(
-                            color = StoneDivider.copy(alpha = 0.7f),
-                            thickness = 0.8.dp,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
+                        if (paperChapters.isEmpty()) {
+                            Text(
+                                text = if (isBangla) "$activePaperLabel-এ এখনো কোনো অধ্যায় যোগ করা হয়নি।" else "No chapters added for $activePaperLabel yet.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = StoneInkSecondary,
+                                modifier = Modifier.padding(vertical = 12.dp)
+                            )
+                        } else {
+                            paperChapters.forEachIndexed { index, chapter ->
+                                ChapterPrepRow(
+                                    index = index + 1,
+                                    chapter = chapter,
+                                    subjectColor = subjectColor,
+                                    canDelete = subject.chapters.size > 1,
+                                    isBangla = isBangla,
+                                    onToggleTag = { tag -> onToggleTag(chapter.id, tag) },
+                                    onToggleAll = { onToggleAllInChapter(chapter.id) },
+                                    onDelete = { onDeleteChapter(chapter.id) }
+                                )
+                                if (index < paperChapters.lastIndex) {
+                                    HorizontalDivider(
+                                        color = StoneDivider.copy(alpha = 0.7f),
+                                        thickness = 0.8.dp,
+                                        modifier = Modifier.padding(vertical = 8.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
+            HorizontalDivider(color = StoneDivider)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Footer Bar matching GroupEnterPreviewBottomSheet (Close + Primary Action)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                NeumorphicPillButton(
+                    text = s.cancelButton,
+                    selected = false,
+                    onClick = onDismiss,
+                    modifier = Modifier.testTag("tracker_popup_close")
+                )
+                NeumorphicPillButton(
+                    text = s.trackerAddChapter,
+                    selected = true,
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = null,
+                            tint = StoneInkPrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    onClick = onAddChapterClick,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("tracker_add_chapter_${subject.id}")
+                )
             }
         }
     }

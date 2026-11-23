@@ -25,6 +25,17 @@ val AmiriArabicFamily = FontFamily(
     Font(R.font.amiri, FontWeight.Bold)
 )
 
+val FrauncesFamily = FontFamily(
+    Font(R.font.fraunces, FontWeight.Medium),
+    Font(R.font.fraunces, FontWeight.Bold)
+)
+
+val SourceSerif4Family = FontFamily(
+    Font(R.font.source_serif_4, FontWeight.Normal),
+    Font(R.font.source_serif_4, FontWeight.Medium),
+    Font(R.font.source_serif_4, FontWeight.SemiBold)
+)
+
 val AppTypography = Typography(
     displayLarge = TextStyle(
         fontFamily = BarlowCondensedFamily,

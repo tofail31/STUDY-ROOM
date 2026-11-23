@@ -12,6 +12,11 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.data.model.CalculationMethodOption
+import com.example.data.model.CustomPublishedExam
+import com.example.data.model.ExamPaperStyle
+import com.example.data.model.ExamQuestion
+import com.example.data.model.MissionItem
+import com.example.data.model.MissionTimeHelper
 import com.example.data.model.PrepQuestionTag
 import com.example.data.model.StudyDashboardDefaults
 import com.example.data.model.StudySubjectItem
@@ -58,7 +63,15 @@ data class UserPrefsState(
     val focusSessionModeId: String = "STOPWATCH",
     val studySubjects: List<StudySubjectItem> = StudyDashboardDefaults.defaultSubjects,
     val studyTodos: List<StudyTodoItem> = StudyDashboardDefaults.defaultTodos,
-    val trackerSubjects: List<TrackerSubject> = TrackerDefaults.defaultSubjects
+    val trackerSubjects: List<TrackerSubject> = TrackerDefaults.defaultSubjects,
+    val examBestScores: Map<String, Int> = emptyMap(),
+    val wrongExamQuestionIds: Set<String> = emptySet(),
+    val totalExamsTaken: Int = 0,
+    val userCreatedExams: List<CustomPublishedExam> = emptyList(),
+    val storyLastReadPages: Map<String, Int> = emptyMap(),
+    val storyBookmarkedPages: Set<String> = emptySet(),
+    val missions: List<MissionItem> = MissionTimeHelper.createStarterMissions(),
+    val missionLiveNotifEnabled: Boolean = false
 )
 
 class UserPreferencesRepository(private val context: Context) {
@@ -96,6 +109,19 @@ class UserPreferencesRepository(private val context: Context) {
         val STUDY_SUBJECTS_JSON = stringPreferencesKey("study_subjects_json")
         val STUDY_TODOS_JSON = stringPreferencesKey("study_todos_json")
         val TRACKER_SUBJECTS_JSON = stringPreferencesKey("tracker_subjects_json")
+        val TRACKER_SCHEMA_VERSION = intPreferencesKey("tracker_schema_version")
+        val EXAM_BEST_SCORES_JSON = stringPreferencesKey("exam_best_scores_json")
+        val EXAM_WRONG_IDS = stringSetPreferencesKey("exam_wrong_ids")
+        val TOTAL_EXAMS_TAKEN = intPreferencesKey("total_exams_taken")
+        val CUSTOM_EXAMS_JSON = stringPreferencesKey("custom_exams_json")
+        val STORY_LAST_READ_JSON = stringPreferencesKey("story_last_read_json")
+        val STORY_BOOKMARKS = stringSetPreferencesKey("story_bookmarks")
+        val MISSIONS_JSON = stringPreferencesKey("missions_json")
+        val MISSION_LIVE_NOTIF = booleanPreferencesKey("mission_live_notif")
+    }
+
+    private companion object {
+        const val CURRENT_TRACKER_SCHEMA = 2
     }
 
     val prefsFlow: Flow<UserPrefsState> = context.dataStore.data.map { prefs ->
@@ -136,7 +162,19 @@ class UserPreferencesRepository(private val context: Context) {
             focusSessionModeId = prefs[Keys.FOCUS_SESSION_MODE] ?: "STOPWATCH",
             studySubjects = decodeSubjects(prefs[Keys.STUDY_SUBJECTS_JSON]),
             studyTodos = decodeTodos(prefs[Keys.STUDY_TODOS_JSON]),
-            trackerSubjects = decodeTrackerSubjects(prefs[Keys.TRACKER_SUBJECTS_JSON])
+            trackerSubjects = decodeTrackerSubjects(
+                raw = prefs[Keys.TRACKER_SUBJECTS_JSON],
+                schemaVersion = prefs[Keys.TRACKER_SCHEMA_VERSION] ?: 1
+            ),
+            examBestScores = decodeExamBestScores(prefs[Keys.EXAM_BEST_SCORES_JSON]),
+            wrongExamQuestionIds = prefs[Keys.EXAM_WRONG_IDS] ?: emptySet(),
+            totalExamsTaken = prefs[Keys.TOTAL_EXAMS_TAKEN] ?: 0,
+            userCreatedExams = decodeCustomExams(prefs[Keys.CUSTOM_EXAMS_JSON]),
+            storyLastReadPages = decodeExamBestScores(prefs[Keys.STORY_LAST_READ_JSON]),
+            storyBookmarkedPages = prefs[Keys.STORY_BOOKMARKS] ?: emptySet(),
+            missions = MissionStorageHelper.decodeMissions(prefs[Keys.MISSIONS_JSON])
+                ?: MissionTimeHelper.createStarterMissions(),
+            missionLiveNotifEnabled = prefs[Keys.MISSION_LIVE_NOTIF] ?: false
         )
     }
 
@@ -260,6 +298,7 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun saveTrackerSubjects(subjects: List<TrackerSubject>) {
         context.dataStore.edit { prefs ->
             prefs[Keys.TRACKER_SUBJECTS_JSON] = encodeTrackerSubjects(subjects)
+            prefs[Keys.TRACKER_SCHEMA_VERSION] = CURRENT_TRACKER_SCHEMA
         }
     }
 
@@ -274,6 +313,198 @@ class UserPreferencesRepository(private val context: Context) {
             if (goalHours != null) prefs[Keys.FOCUS_GOAL_HOURS] = goalHours.coerceIn(1, 16)
             if (sessionModeId != null) prefs[Keys.FOCUS_SESSION_MODE] = sessionModeId
             if (streakDays != null) prefs[Keys.STUDY_STREAK_DAYS] = streakDays.coerceAtLeast(0)
+        }
+    }
+
+    suspend fun recordExamResult(
+        chapterId: String?,
+        score: Int,
+        newlyWrongIds: Set<String>,
+        newlyCorrectIds: Set<String>
+    ) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.TOTAL_EXAMS_TAKEN] = (prefs[Keys.TOTAL_EXAMS_TAKEN] ?: 0) + 1
+            val currentWrong = prefs[Keys.EXAM_WRONG_IDS] ?: emptySet()
+            prefs[Keys.EXAM_WRONG_IDS] = (currentWrong - newlyCorrectIds) + newlyWrongIds
+
+            if (!chapterId.isNullOrBlank()) {
+                val scores = decodeExamBestScores(prefs[Keys.EXAM_BEST_SCORES_JSON]).toMutableMap()
+                val existing = scores[chapterId] ?: -1
+                if (score > existing) {
+                    scores[chapterId] = score
+                }
+                prefs[Keys.EXAM_BEST_SCORES_JSON] = encodeExamBestScores(scores)
+            }
+        }
+    }
+
+    private fun encodeExamBestScores(map: Map<String, Int>): String {
+        val obj = JSONObject()
+        map.forEach { (k, v) -> obj.put(k, v) }
+        return obj.toString()
+    }
+
+    private fun decodeExamBestScores(raw: String?): Map<String, Int> {
+        if (raw.isNullOrBlank()) return emptyMap()
+        return try {
+            val obj = JSONObject(raw)
+            val result = mutableMapOf<String, Int>()
+            val keys = obj.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                result[key] = obj.optInt(key, 0)
+            }
+            result
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    suspend fun saveCustomExams(exams: List<CustomPublishedExam>) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.CUSTOM_EXAMS_JSON] = encodeCustomExams(exams)
+        }
+    }
+
+    suspend fun updateStoryLastReadPage(bookId: String, pageIndex: Int) {
+        context.dataStore.edit { prefs ->
+            val current = decodeExamBestScores(prefs[Keys.STORY_LAST_READ_JSON]).toMutableMap()
+            current[bookId] = pageIndex
+            prefs[Keys.STORY_LAST_READ_JSON] = encodeExamBestScores(current)
+        }
+    }
+
+    suspend fun toggleStoryBookmarkPage(bookId: String, pageIndex: Int) {
+        val key = "$bookId:$pageIndex"
+        context.dataStore.edit { prefs ->
+            val current = prefs[Keys.STORY_BOOKMARKS] ?: emptySet()
+            prefs[Keys.STORY_BOOKMARKS] = if (key in current) current - key else current + key
+        }
+    }
+
+    suspend fun saveMissions(missions: List<MissionItem>, liveNotifEnabled: Boolean) {
+        MissionStorageHelper.writeWidgetMirror(context, missions, liveNotifEnabled)
+        context.dataStore.edit { prefs ->
+            prefs[Keys.MISSIONS_JSON] = MissionStorageHelper.encodeMissions(missions)
+            prefs[Keys.MISSION_LIVE_NOTIF] = liveNotifEnabled
+        }
+    }
+
+    suspend fun setMissionLiveNotifEnabled(enabled: Boolean, missions: List<MissionItem>) {
+        MissionStorageHelper.writeWidgetMirror(context, missions, enabled)
+        context.dataStore.edit { prefs ->
+            prefs[Keys.MISSION_LIVE_NOTIF] = enabled
+        }
+    }
+
+    private fun encodeCustomExams(list: List<CustomPublishedExam>): String {
+        val arr = JSONArray()
+        list.forEach { exam ->
+            val qArr = JSONArray()
+            exam.questions.forEach { q ->
+                val optsArr = JSONArray()
+                q.options.forEach { opt -> optsArr.put(opt) }
+                qArr.put(
+                    JSONObject().apply {
+                        put("id", q.id)
+                        put("subjectId", q.subjectId)
+                        put("chapterId", q.chapterId)
+                        put("paper", q.paper)
+                        put("uddipok", q.uddipok)
+                        put("questionText", q.questionText)
+                        put("options", optsArr)
+                        put("correctIndex", q.correctIndex)
+                        put("explanation", q.explanation)
+                    }
+                )
+            }
+            arr.put(
+                JSONObject().apply {
+                    put("id", exam.id)
+                    put("title", exam.title)
+                    put("authorName", exam.authorName)
+                    put("authorBatch", exam.authorBatch)
+                    put("subjectId", exam.subjectId)
+                    put("subjectName", exam.subjectName)
+                    put("subjectColorHex", exam.subjectColorHex)
+                    put("paper", exam.paper)
+                    put("chapterId", exam.chapterId)
+                    put("chapterTitle", exam.chapterTitle)
+                    put("password", exam.password)
+                    put("description", exam.description)
+                    put("rules", exam.rules)
+                    put("showDetailsInEntryPopup", exam.showDetailsInEntryPopup)
+                    put("paperStyle", exam.paperStyle.name)
+                    put("isPublished", exam.isPublished)
+                    put("createdAtMillis", exam.createdAtMillis)
+                    put("attemptCount", exam.attemptCount)
+                    put("questions", qArr)
+                }
+            )
+        }
+        return arr.toString()
+    }
+
+    private fun decodeCustomExams(raw: String?): List<CustomPublishedExam> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return try {
+            val arr = JSONArray(raw)
+            val result = mutableListOf<CustomPublishedExam>()
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                val qArr = obj.optJSONArray("questions") ?: JSONArray()
+                val qs = mutableListOf<ExamQuestion>()
+                for (j in 0 until qArr.length()) {
+                    val qObj = qArr.getJSONObject(j)
+                    val optsArr = qObj.optJSONArray("options") ?: JSONArray()
+                    val opts = mutableListOf<String>()
+                    for (k in 0 until optsArr.length()) {
+                        opts.add(optsArr.optString(k))
+                    }
+                    qs.add(
+                        ExamQuestion(
+                            id = qObj.getString("id"),
+                            subjectId = qObj.optString("subjectId", ""),
+                            chapterId = qObj.optString("chapterId", ""),
+                            paper = qObj.optInt("paper", 1),
+                            uddipok = qObj.optString("uddipok", ""),
+                            questionText = qObj.getString("questionText"),
+                            options = opts,
+                            correctIndex = qObj.optInt("correctIndex", 0),
+                            explanation = qObj.optString("explanation", "")
+                        )
+                    )
+                }
+                val styleName = obj.optString("paperStyle", ExamPaperStyle.CLASSIC_CARDS.name)
+                val resolvedStyle = ExamPaperStyle.entries.firstOrNull { it.name == styleName }
+                    ?: ExamPaperStyle.CLASSIC_CARDS
+                result.add(
+                    CustomPublishedExam(
+                        id = obj.getString("id"),
+                        title = obj.getString("title"),
+                        authorName = obj.optString("authorName", "Student"),
+                        authorBatch = obj.optString("authorBatch", "HSC-26"),
+                        subjectId = obj.optString("subjectId", "trk_physics"),
+                        subjectName = obj.optString("subjectName", "Physics"),
+                        subjectColorHex = obj.optLong("subjectColorHex", 0xFFE66D45),
+                        paper = obj.optInt("paper", 1),
+                        chapterId = obj.optString("chapterId", ""),
+                        chapterTitle = obj.optString("chapterTitle", ""),
+                        password = obj.optString("password", ""),
+                        description = obj.optString("description", ""),
+                        rules = obj.optString("rules", ""),
+                        showDetailsInEntryPopup = obj.optBoolean("showDetailsInEntryPopup", true),
+                        paperStyle = resolvedStyle,
+                        isPublished = obj.optBoolean("isPublished", true),
+                        createdAtMillis = obj.optLong("createdAtMillis", 0L),
+                        attemptCount = obj.optInt("attemptCount", 0),
+                        questions = qs
+                    )
+                )
+            }
+            result
+        } catch (_: Exception) {
+            emptyList()
         }
     }
 
@@ -362,6 +593,7 @@ class UserPreferencesRepository(private val context: Context) {
                     JSONObject().apply {
                         put("id", ch.id)
                         put("title", ch.title)
+                        put("paper", ch.paper)
                         put("tags", tagsArr)
                     }
                 )
@@ -379,11 +611,11 @@ class UserPreferencesRepository(private val context: Context) {
         return arr.toString()
     }
 
-    private fun decodeTrackerSubjects(raw: String?): List<TrackerSubject> {
+    private fun decodeTrackerSubjects(raw: String?, schemaVersion: Int): List<TrackerSubject> {
         if (raw.isNullOrBlank()) return TrackerDefaults.defaultSubjects
         return try {
             val arr = JSONArray(raw)
-            val result = mutableListOf<TrackerSubject>()
+            val savedList = mutableListOf<TrackerSubject>()
             for (i in 0 until arr.length()) {
                 val obj = arr.getJSONObject(i)
                 val chArr = obj.optJSONArray("chapters") ?: JSONArray()
@@ -400,11 +632,12 @@ class UserPreferencesRepository(private val context: Context) {
                         TrackerChapter(
                             id = chObj.getString("id"),
                             title = chObj.getString("title"),
+                            paper = chObj.optInt("paper", 1).coerceIn(1, 2),
                             completedTags = tags
                         )
                     )
                 }
-                result.add(
+                savedList.add(
                     TrackerSubject(
                         id = obj.getString("id"),
                         nameEn = obj.getString("nameEn"),
@@ -414,7 +647,25 @@ class UserPreferencesRepository(private val context: Context) {
                     )
                 )
             }
-            if (result.isEmpty()) TrackerDefaults.defaultSubjects else result
+            if (savedList.isEmpty()) return TrackerDefaults.defaultSubjects
+            if (schemaVersion < CURRENT_TRACKER_SCHEMA) {
+                val savedBySubj = savedList.associateBy { it.id }
+                val defaultIds = TrackerDefaults.defaultSubjects.map { it.id }.toSet()
+                val upgradedDefaults = TrackerDefaults.defaultSubjects.map { defSubj ->
+                    val oldSubj = savedBySubj[defSubj.id] ?: return@map defSubj
+                    val oldTagsById = oldSubj.chapters.associate { it.id to it.completedTags }
+                    defSubj.copy(
+                        chapters = defSubj.chapters.map { ch ->
+                            val legacyId = ch.id.replace("_p1_ch_", "_ch_")
+                            val preserved = oldTagsById[ch.id] ?: oldTagsById[legacyId]
+                            if (preserved != null) ch.copy(completedTags = preserved) else ch
+                        }
+                    )
+                }
+                val customSubjects = savedList.filter { it.id !in defaultIds }
+                return upgradedDefaults + customSubjects
+            }
+            savedList
         } catch (_: Exception) {
             TrackerDefaults.defaultSubjects
         }

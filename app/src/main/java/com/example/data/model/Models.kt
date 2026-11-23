@@ -232,6 +232,7 @@ enum class PrepQuestionTag(val label: String) {
 data class TrackerChapter(
     val id: String,
     val title: String,
+    val paper: Int = 1,
     val completedTags: Set<PrepQuestionTag> = emptySet()
 ) {
     val doneCount: Int get() = completedTags.size
@@ -253,17 +254,40 @@ data class TrackerSubject(
     val progressPercent: Int
         get() = if (totalCheckboxes == 0) 0
         else ((completedCheckboxes.toFloat() / totalCheckboxes.toFloat()) * 100f).toInt()
+
+    fun chaptersForPaper(paper: Int): List<TrackerChapter> = chapters.filter { it.paper == paper }
+
+    fun paperTotalCheckboxes(paper: Int): Int =
+        chaptersForPaper(paper).size * PrepQuestionTag.entries.size
+
+    fun paperCompletedCheckboxes(paper: Int): Int =
+        chaptersForPaper(paper).sumOf { it.completedTags.size }
+
+    fun paperCompletedChaptersCount(paper: Int): Int =
+        chaptersForPaper(paper).count { it.completedTags.size == PrepQuestionTag.entries.size }
+
+    fun paperProgressPercent(paper: Int): Int {
+        val total = paperTotalCheckboxes(paper)
+        if (total == 0) return 0
+        return ((paperCompletedCheckboxes(paper).toFloat() / total.toFloat()) * 100f).toInt()
+    }
 }
 
 object TrackerDefaults {
-    private fun chapters(subjectId: String, titles: List<String>): List<TrackerChapter> =
-        titles.mapIndexed { idx, title ->
-            TrackerChapter(
-                id = "${subjectId}_ch_${idx + 1}",
-                title = title,
-                completedTags = emptySet()
-            )
-        }
+    private fun paperChapters(
+        subjectId: String,
+        paper: Int,
+        titles: List<String>,
+        presetTags: Map<Int, Set<PrepQuestionTag>> = emptyMap()
+    ): List<TrackerChapter> = titles.mapIndexed { idx, title ->
+        val chapterNo = idx + 1
+        TrackerChapter(
+            id = "${subjectId}_p${paper}_ch_${chapterNo}",
+            title = title,
+            paper = paper,
+            completedTags = presetTags[chapterNo] ?: emptySet()
+        )
+    }
 
     val defaultSubjects: List<TrackerSubject> = listOf(
         TrackerSubject(
@@ -271,15 +295,47 @@ object TrackerDefaults {
             nameEn = "Bangla",
             nameBn = "বাংলা",
             colorHex = 0xFFE11D48,
-            chapters = listOf(
-                TrackerChapter("trk_bangla_ch_1", "অপরিচিতা", setOf(PrepQuestionTag.KA, PrepQuestionTag.KHA, PrepQuestionTag.MCQ)),
-                TrackerChapter("trk_bangla_ch_2", "বিলাসী", setOf(PrepQuestionTag.KA, PrepQuestionTag.KHA)),
-                TrackerChapter("trk_bangla_ch_3", "আমার পথ"),
-                TrackerChapter("trk_bangla_ch_4", "মানব-কল্যাণ"),
-                TrackerChapter("trk_bangla_ch_5", "মাসি-পিসি"),
-                TrackerChapter("trk_bangla_ch_6", "বায়ান্নর দিনগুলো"),
-                TrackerChapter("trk_bangla_ch_7", "রেইনকোট"),
-                TrackerChapter("trk_bangla_ch_8", "সোনার তরী ও বিদ্রোহী")
+            chapters = paperChapters(
+                subjectId = "trk_bangla",
+                paper = 1,
+                titles = listOf(
+                    "অপরিচিতা (গদ্য)",
+                    "বিলাসী (গদ্য)",
+                    "আমার পথ (গদ্য)",
+                    "মানব-কল্যাণ (গদ্য)",
+                    "মাসি-পিসি (গদ্য)",
+                    "বায়ান্নর দিনগুলো (গদ্য)",
+                    "রেইনকোট (গদ্য)",
+                    "সোনার তরী (পদ্য)",
+                    "বিদ্রোহী (পদ্য)",
+                    "প্রতিদান (পদ্য)",
+                    "তাহারেই পড়ে মনে (পদ্য)",
+                    "আঠারো বছর বয়স (পদ্য)",
+                    "ফেব্রুয়ারি ১৯৬৯ ও আমি কিংবদন্তির কথা বলছি",
+                    "সিরাজউদ্দৌলা (নাটক)",
+                    "লালসালু (উপন্যাস)"
+                ),
+                presetTags = mapOf(
+                    1 to setOf(PrepQuestionTag.KA, PrepQuestionTag.KHA, PrepQuestionTag.MCQ),
+                    2 to setOf(PrepQuestionTag.KA, PrepQuestionTag.KHA)
+                )
+            ) + paperChapters(
+                subjectId = "trk_bangla",
+                paper = 2,
+                titles = listOf(
+                    "বাংলা উচ্চারণের নিয়ম",
+                    "বাংলা বানানের নিয়ম",
+                    "বাংলা ভাষার ব্যাকরণিক শব্দশ্রেণি",
+                    "বাংলা শব্দ গঠন (উপসর্গ, প্রত্যয় ও সমাস)",
+                    "বাক্যতত্ত্ব",
+                    "বাংলা ভাষার অপপ্রয়োগ ও শুদ্ধ প্রয়োগ",
+                    "পারিভাষিক শব্দ ও অনুবাদ",
+                    "দিনলিপি ও প্রতিবেদন রচনা",
+                    "বৈদ্যুতিন চিঠি ও আবেদনপত্র",
+                    "সারাংশ, সারমর্ম ও ভাব-সম্প্রসারণ",
+                    "সংলাপ ও ক্ষুদে গল্প রচনা",
+                    "প্রবন্ধ-নিবন্ধ রচনা"
+                )
             )
         ),
         TrackerSubject(
@@ -287,14 +343,43 @@ object TrackerDefaults {
             nameEn = "English",
             nameBn = "ইংরেজি",
             colorHex = 0xFF0D9488,
-            chapters = listOf(
-                TrackerChapter("trk_english_ch_1", "The Unforgettable History", setOf(PrepQuestionTag.CQ, PrepQuestionTag.MCQ)),
-                TrackerChapter("trk_english_ch_2", "Nelson Mandela"),
-                TrackerChapter("trk_english_ch_3", "Dreams & Poems"),
-                TrackerChapter("trk_english_ch_4", "Adolescence"),
-                TrackerChapter("trk_english_ch_5", "Food Adulteration"),
-                TrackerChapter("trk_english_ch_6", "Modifiers & Connectors"),
-                TrackerChapter("trk_english_ch_7", "Narration & Completing")
+            chapters = paperChapters(
+                subjectId = "trk_english",
+                paper = 1,
+                titles = listOf(
+                    "Unit 1: The Unforgettable History & Mandela",
+                    "Unit 2: Education and Life",
+                    "Unit 3: Dreams",
+                    "Unit 4: Youthful Achievers",
+                    "Unit 5: Relationships",
+                    "Unit 6: Adolescence",
+                    "Unit 7: Lifestyle & Food Adulteration",
+                    "Unit 8: Human Rights",
+                    "Unit 9: Tours and Travels",
+                    "Unit 10: Environment and Nature",
+                    "Unit 11: Art and Craft",
+                    "Unit 12: Myths and Literature"
+                ),
+                presetTags = mapOf(
+                    1 to setOf(PrepQuestionTag.CQ, PrepQuestionTag.MCQ)
+                )
+            ) + paperChapters(
+                subjectId = "trk_english",
+                paper = 2,
+                titles = listOf(
+                    "Use of Prepositions",
+                    "Special Uses of Words & Phrases",
+                    "Completing Sentences (Clauses)",
+                    "Right Form of Verbs",
+                    "Narration & Direct/Indirect Speech",
+                    "Use of Modifiers",
+                    "Use of Sentence Connectors",
+                    "Synonym & Antonym",
+                    "Punctuation",
+                    "Formal Letter & E-mail",
+                    "Report Writing",
+                    "Paragraph & Composition"
+                )
             )
         ),
         TrackerSubject(
@@ -302,15 +387,23 @@ object TrackerDefaults {
             nameEn = "ICT",
             nameBn = "আইসিটি",
             colorHex = 0xFF2563EB,
-            chapters = chapters(
-                "trk_ict",
-                listOf(
-                    "বিশ্ব ও বাংলাদেশ প্রেক্ষিত",
-                    "কমিউনিকেশন সিস্টেমস ও নেটওয়ার্কিং",
-                    "সংখ্যা পদ্ধতি ও ডিজিটাল ডিভাইস",
-                    "ওয়েব ডিজাইন ও HTML",
-                    "প্রোগ্রামিং ভাষা (C)",
-                    "ডেটাবেজ ম্যানেজমেন্ট সিস্টেম"
+            chapters = paperChapters(
+                subjectId = "trk_ict",
+                paper = 1,
+                titles = listOf(
+                    "অধ্যায় ১: বিশ্ব ও বাংলাদেশ প্রেক্ষিত",
+                    "অধ্যায় ২: কমিউনিকেশন সিস্টেমস ও নেটওয়ার্কিং",
+                    "অধ্যায় ৩ (ক): সংখ্যা পদ্ধতি ও রূপান্তর",
+                    "অধ্যায় ৩ (খ): ডিজিটাল ডিভাইস ও লজিক গেট"
+                )
+            ) + paperChapters(
+                subjectId = "trk_ict",
+                paper = 2,
+                titles = listOf(
+                    "অধ্যায় ৪: ওয়েব ডিজাইন পরিচিতি এবং HTML",
+                    "অধ্যায় ৫ (ক): অ্যালগরিদম ও ফ্লোচার্ট",
+                    "অধ্যায় ৫ (খ): প্রোগ্রামিং ভাষা (C)",
+                    "অধ্যায় ৬: ডেটাবেজ ম্যানেজমেন্ট সিস্টেম (SQL)"
                 )
             )
         ),
@@ -319,15 +412,41 @@ object TrackerDefaults {
             nameEn = "Physics",
             nameBn = "পদার্থবিজ্ঞান",
             colorHex = 0xFFED6A4A,
-            chapters = listOf(
-                TrackerChapter("trk_physics_ch_1", "ভৌত জগৎ ও পরিমাপ", setOf(PrepQuestionTag.KA, PrepQuestionTag.KHA, PrepQuestionTag.GA, PrepQuestionTag.MCQ)),
-                TrackerChapter("trk_physics_ch_2", "ভেক্টর", setOf(PrepQuestionTag.KA, PrepQuestionTag.KHA)),
-                TrackerChapter("trk_physics_ch_3", "গতিবিদ্যা"),
-                TrackerChapter("trk_physics_ch_4", "নিউটনীয় বলবিদ্যা"),
-                TrackerChapter("trk_physics_ch_5", "কাজ, শক্তি ও ক্ষমতা"),
-                TrackerChapter("trk_physics_ch_6", "মহাকর্ষ ও অভিকর্ষ"),
-                TrackerChapter("trk_physics_ch_7", "পর্যাবৃত্ত গতি ও তরঙ্গ"),
-                TrackerChapter("trk_physics_ch_8", "তাপগতিবিদ্যা ও তড়িৎ")
+            chapters = paperChapters(
+                subjectId = "trk_physics",
+                paper = 1,
+                titles = listOf(
+                    "ভৌত জগৎ ও পরিমাপ",
+                    "ভেক্টর",
+                    "গতিবিদ্যা",
+                    "নিউটনীয় বলবিদ্যা",
+                    "কাজ, শক্তি ও ক্ষমতা",
+                    "মহাকর্ষ ও অভিকর্ষ",
+                    "পদার্থের গাঠনিক ধর্ম",
+                    "পর্যাবৃত্ত গতি",
+                    "তরঙ্গ",
+                    "আদর্শ গ্যাস ও গ্যাসের গতিতত্ত্ব"
+                ),
+                presetTags = mapOf(
+                    1 to setOf(PrepQuestionTag.KA, PrepQuestionTag.KHA, PrepQuestionTag.GA, PrepQuestionTag.MCQ),
+                    2 to setOf(PrepQuestionTag.KA, PrepQuestionTag.KHA)
+                )
+            ) + paperChapters(
+                subjectId = "trk_physics",
+                paper = 2,
+                titles = listOf(
+                    "তাপগতিবিদ্যা",
+                    "স্থির তড়িৎ",
+                    "চল তড়িৎ",
+                    "তড়িৎ প্রবাহের চৌম্বক ক্রিয়া ও চুম্বকত্ব",
+                    "তাড়িতচৌম্বক আবেশ ও পরিবর্তী প্রবাহ",
+                    "জ্যামিতিক আলোকবিজ্ঞান",
+                    "ভৌত আলোকবিজ্ঞান",
+                    "আধুনিক পদার্থবিজ্ঞানের সূচনা",
+                    "পরমাণুর মডেল ও নিউক্লিয়ার পদার্থবিজ্ঞান",
+                    "সেমিকন্ডাক্টর ও ইলেকট্রনিক্স",
+                    "জ্যোতির্বিজ্ঞান"
+                )
             )
         ),
         TrackerSubject(
@@ -335,17 +454,25 @@ object TrackerDefaults {
             nameEn = "Chemistry",
             nameBn = "রসায়ন",
             colorHex = 0xFF7C5CFC,
-            chapters = chapters(
-                "trk_chemistry",
-                listOf(
+            chapters = paperChapters(
+                subjectId = "trk_chemistry",
+                paper = 1,
+                titles = listOf(
                     "ল্যাবরেটরির নিরাপদ ব্যবহার",
                     "গুণগত রসায়ন",
-                    "মৌলের পর্যায়বৃত্ত ধর্ম ও বন্ধন",
+                    "মৌলের পর্যায়বৃত্ত ধর্ম ও রাসায়নিক বন্ধন",
                     "রাসায়নিক পরিবর্তন",
+                    "কর্মমুখী রসায়ন"
+                )
+            ) + paperChapters(
+                subjectId = "trk_chemistry",
+                paper = 2,
+                titles = listOf(
                     "পরিবেশ রসায়ন",
                     "জৈব রসায়ন",
                     "পরিমাণগত রসায়ন",
-                    "তড়িৎ রসায়ন"
+                    "তড়িৎ রসায়ন",
+                    "অর্থনৈতিক রসায়ন"
                 )
             )
         ),
@@ -354,17 +481,35 @@ object TrackerDefaults {
             nameEn = "Math",
             nameBn = "উচ্চতর গণিত",
             colorHex = 0xFF5E9E1B,
-            chapters = chapters(
-                "trk_math",
-                listOf(
+            chapters = paperChapters(
+                subjectId = "trk_math",
+                paper = 1,
+                titles = listOf(
                     "ম্যাট্রিক্স ও নির্ণায়ক",
+                    "ভেক্টর",
                     "সরলরেখা",
                     "বৃত্ত",
-                    "সংযুক্ত কোণের ত্রিকোণমিতি",
+                    "বিন্যাস ও সমাবেশ",
+                    "ত্রিকোণমিতিক অনুপাত",
+                    "সংযুক্ত কোণের ত্রিকোণমিতিক অনুপাত",
+                    "ফাংশন ও ফাংশনের লেখচিত্র",
                     "অন্তরীকরণ",
-                    "যোগজীকরণ",
-                    "জটিল সংখ্যা ও বহুপদী",
-                    "কনিকস ও গতিবিদ্যা"
+                    "যোগজীকরণ"
+                )
+            ) + paperChapters(
+                subjectId = "trk_math",
+                paper = 2,
+                titles = listOf(
+                    "বাস্তব সংখ্যা ও অসমতা",
+                    "যোগাশ্রয়ী প্রোগ্রাম",
+                    "জটিল সংখ্যা",
+                    "বহুপদী ও বহুপদী সমীকরণ",
+                    "দ্বিপদী বিস্তৃতি",
+                    "কনিকস",
+                    "বিপরীত ত্রিকোণমিতিক ফাংশন ও সমীকরণ",
+                    "স্থিতিবিদ্যা",
+                    "সমতলে বস্তুকণার গতি",
+                    "বিস্তার পরিমাপ ও সম্ভাবনা"
                 )
             )
         ),
@@ -373,17 +518,39 @@ object TrackerDefaults {
             nameEn = "Biology",
             nameBn = "জীববিজ্ঞান",
             colorHex = 0xFFF4A236,
-            chapters = chapters(
-                "trk_biology",
-                listOf(
-                    "কোষ ও এর গঠন",
+            chapters = paperChapters(
+                subjectId = "trk_biology",
+                paper = 1,
+                titles = listOf(
+                    "কোষ ও এর গঠন (উদ্ভিদবিজ্ঞান)",
                     "কোষ বিভাজন",
-                    "অণুজীব (ভাইরাস ও ব্যাকটেরিয়া)",
+                    "কোষ রসায়ন",
+                    "অণুজীব",
+                    "শৈবাল ও ছত্রাক",
+                    "ব্রায়োফাইটা ও টেরিডোফাইটা",
                     "নগ্নবীজী ও আবৃতবীজী উদ্ভিদ",
+                    "টিস্যু ও টিস্যুতন্ত্র",
                     "উদ্ভিদ শারীরতত্ত্ব",
-                    "প্রাণীর শ্রেণিবিন্যাস",
+                    "উদ্ভিদ প্রজনন",
+                    "জীবপ্রযুক্তি",
+                    "জীবের পরিবেশ, বিস্তার ও সংরক্ষণ"
+                )
+            ) + paperChapters(
+                subjectId = "trk_biology",
+                paper = 2,
+                titles = listOf(
+                    "প্রাণীর বিভিন্নতা ও শ্রেণিবিন্যাস (প্রাণিবিজ্ঞান)",
+                    "প্রাণীর পরিচিতি (হাইড্রা, ঘাসফড়িং ও রুই)",
+                    "পরিপাক ও শোষণ",
                     "রক্ত ও সঞ্চালন",
-                    "জিনতত্ত্ব ও বিবর্তন"
+                    "শ্বাসক্রিয়া ও শ্বসন",
+                    "বর্জ্য ও নিষ্কাশন",
+                    "চলন ও অঙ্গচালনা",
+                    "সমন্বয় ও নিয়ন্ত্রণ",
+                    "মানব জীবনের ধারাবাহিকতা",
+                    "মানবদেহের প্রতিরক্ষা",
+                    "জিনতত্ত্ব ও বিবর্তন",
+                    "প্রাণীর আচরণ"
                 )
             )
         )

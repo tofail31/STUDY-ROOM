@@ -399,6 +399,93 @@ fun TrackerChecklistIcon(
 }
 
 @Composable
+fun ExamQuizIcon(
+    modifier: Modifier = Modifier,
+    tint: Color = StoneInkPrimary
+) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = w * 0.048f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+        // Exam paper sheet
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(w * 0.16f, h * 0.14f),
+            size = Size(w * 0.56f, h * 0.72f),
+            cornerRadius = CornerRadius(w * 0.09f),
+            style = stroke
+        )
+        // A+ / Q header bar
+        drawLine(tint, Offset(w * 0.27f, h * 0.30f), Offset(w * 0.56f, h * 0.30f), strokeWidth = w * 0.045f, cap = StrokeCap.Round)
+        // Bubble 1 (filled accent) + line
+        drawCircle(color = StoneAccent, radius = w * 0.045f, center = Offset(w * 0.31f, h * 0.46f))
+        drawLine(tint, Offset(w * 0.41f, h * 0.46f), Offset(w * 0.61f, h * 0.46f), strokeWidth = w * 0.04f, cap = StrokeCap.Round)
+        // Bubble 2 + line
+        drawCircle(color = tint, radius = w * 0.045f, center = Offset(w * 0.31f, h * 0.61f), style = Stroke(width = w * 0.035f))
+        drawLine(tint, Offset(w * 0.41f, h * 0.61f), Offset(w * 0.61f, h * 0.61f), strokeWidth = w * 0.04f, cap = StrokeCap.Round)
+        // Pencil angled bottom-right
+        val pencilPath = Path().apply {
+            moveTo(w * 0.62f, h * 0.78f)
+            lineTo(w * 0.84f, h * 0.48f)
+            lineTo(w * 0.91f, h * 0.54f)
+            lineTo(w * 0.69f, h * 0.84f)
+            lineTo(w * 0.59f, h * 0.87f)
+            close()
+        }
+        drawPath(pencilPath, color = StoneAccent, style = Fill)
+        drawPath(pencilPath, color = tint, style = Stroke(width = w * 0.036f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+}
+
+@Composable
+fun StoryBookIcon(
+    modifier: Modifier = Modifier,
+    tint: Color = StoneInkPrimary
+) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = w * 0.048f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+        // Open book left page
+        val leftPage = Path().apply {
+            moveTo(w * 0.50f, h * 0.25f)
+            cubicTo(w * 0.36f, h * 0.20f, w * 0.22f, h * 0.21f, w * 0.14f, h * 0.27f)
+            lineTo(w * 0.14f, h * 0.77f)
+            cubicTo(w * 0.22f, h * 0.71f, w * 0.36f, h * 0.70f, w * 0.50f, h * 0.75f)
+            close()
+        }
+        drawPath(leftPage, color = tint, style = stroke)
+
+        // Open book right page
+        val rightPage = Path().apply {
+            moveTo(w * 0.50f, h * 0.25f)
+            cubicTo(w * 0.64f, h * 0.20f, w * 0.78f, h * 0.21f, w * 0.86f, h * 0.27f)
+            lineTo(w * 0.86f, h * 0.77f)
+            cubicTo(w * 0.78f, h * 0.71f, w * 0.64f, h * 0.70f, w * 0.50f, h * 0.75f)
+            close()
+        }
+        drawPath(rightPage, color = tint, style = stroke)
+
+        // Curled page accent lines on left & right pages + terracotta bookmark ribbon
+        drawLine(tint, Offset(w * 0.24f, h * 0.40f), Offset(w * 0.41f, h * 0.38f), strokeWidth = w * 0.036f, cap = StrokeCap.Round)
+        drawLine(tint, Offset(w * 0.24f, h * 0.52f), Offset(w * 0.41f, h * 0.50f), strokeWidth = w * 0.036f, cap = StrokeCap.Round)
+        drawLine(tint, Offset(w * 0.59f, h * 0.40f), Offset(w * 0.76f, h * 0.42f), strokeWidth = w * 0.036f, cap = StrokeCap.Round)
+
+        val bookmark = Path().apply {
+            moveTo(w * 0.68f, h * 0.22f)
+            lineTo(w * 0.76f, h * 0.22f)
+            lineTo(w * 0.76f, h * 0.53f)
+            lineTo(w * 0.72f, h * 0.47f)
+            lineTo(w * 0.68f, h * 0.53f)
+            close()
+        }
+        drawPath(bookmark, color = StoneAccent, style = Fill)
+    }
+}
+
+@Composable
 fun SelengkapnyaGridIcon(
     modifier: Modifier = Modifier,
     tint: Color = StoneInkPrimary
@@ -870,3 +957,65 @@ fun StudyTableIllustration(
         drawRect(outlineColor, Offset(tx(0.780f), ty(0.498f)), Size(deskW * 0.055f, deskH * 0.072f), style = fineStroke)
     }
 }
+
+@Composable
+fun MissionTargetIcon(
+    modifier: Modifier = Modifier,
+    tint: Color = StoneInkPrimary
+) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val cx = w * 0.48f
+        val cy = h * 0.54f
+        val stroke = Stroke(width = w * 0.052f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+        // Outer target ring with small top-right gap for arrow
+        drawArc(
+            color = tint,
+            startAngle = -20f,
+            sweepAngle = 315f,
+            useCenter = false,
+            topLeft = Offset(cx - w * 0.34f, cy - w * 0.34f),
+            size = Size(w * 0.68f, w * 0.68f),
+            style = stroke
+        )
+        // Inner ring
+        drawCircle(
+            color = tint,
+            radius = w * 0.19f,
+            center = Offset(cx, cy),
+            style = Stroke(width = w * 0.044f)
+        )
+        // Bullseye center
+        drawCircle(
+            color = StoneAccent,
+            radius = w * 0.078f,
+            center = Offset(cx, cy)
+        )
+        // Diagonal arrow shaft into bullseye
+        drawLine(
+            color = StoneAccent,
+            start = Offset(cx + w * 0.04f, cy - h * 0.04f),
+            end = Offset(w * 0.85f, h * 0.16f),
+            strokeWidth = w * 0.055f,
+            cap = StrokeCap.Round
+        )
+        // Arrow fletching
+        drawLine(
+            color = tint,
+            start = Offset(w * 0.75f, h * 0.16f),
+            end = Offset(w * 0.85f, h * 0.16f),
+            strokeWidth = w * 0.045f,
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = tint,
+            start = Offset(w * 0.85f, h * 0.16f),
+            end = Offset(w * 0.85f, h * 0.27f),
+            strokeWidth = w * 0.045f,
+            cap = StrokeCap.Round
+        )
+    }
+}
+

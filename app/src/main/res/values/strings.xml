@@ -12,5 +12,7 @@
     <string name="menu_doa">Do\'a</string>
     <string name="menu_dzikir">Dzikir</string>
     <string name="menu_groups">Groups</string>
+    <string name="menu_mission">Mission</string>
     <string name="menu_selengkapnya">More</string>
+    <string name="mission_widget_desc">Real-time 4-hour Mission tracker (auto-updates at 5 AM, 9 AM, 1 PM, 5 PM, 9 PM, 1 AM)</string>
 </resources>

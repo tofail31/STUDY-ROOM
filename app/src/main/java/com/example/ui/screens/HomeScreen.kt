@@ -84,13 +84,16 @@ import com.example.data.preferences.UserPrefsState
 import com.example.ui.components.AyatBookIcon
 import com.example.ui.components.DuaPrayingIcon
 import com.example.ui.components.DzikirTasbihIcon
+import com.example.ui.components.ExamQuizIcon
 import com.example.ui.components.GroupsIcon
+import com.example.ui.components.MissionTargetIcon
 import com.example.ui.components.NeumorphicCard
 import com.example.ui.components.NeumorphicCircleButton
 import com.example.ui.components.NeumorphicPillButton
 import com.example.ui.components.ProfileRingIcon
 import com.example.ui.components.QuranStandIcon
 import com.example.ui.components.SelengkapnyaGridIcon
+import com.example.ui.components.StoryBookIcon
 import com.example.ui.components.StudyDashboardSection
 import com.example.ui.components.TrackerChecklistIcon
 import com.example.ui.theme.AmiriArabicFamily
@@ -122,6 +125,9 @@ fun HomeScreen(
     onOpenDzikir: () -> Unit,
     onOpenGroups: () -> Unit,
     onOpenTracker: () -> Unit = {},
+    onOpenExam: () -> Unit = {},
+    onOpenStory: () -> Unit = {},
+    onOpenMission: () -> Unit = {},
     onOpenMore: () -> Unit,
     onCycleDailyAyah: () -> Unit,
     onToggleAyahBookmark: (Int, Int) -> Unit,
@@ -305,6 +311,9 @@ fun HomeScreen(
                         onOpenDzikir = onOpenDzikir,
                         onOpenGroups = onOpenGroups,
                         onOpenTracker = onOpenTracker,
+                        onOpenExam = onOpenExam,
+                        onOpenStory = onOpenStory,
+                        onOpenMission = onOpenMission,
                         onOpenMore = onOpenMore
                     )
 
@@ -646,12 +655,15 @@ private fun FeatureMenuGrid(
     onOpenDzikir: () -> Unit,
     onOpenGroups: () -> Unit,
     onOpenTracker: () -> Unit,
+    onOpenExam: () -> Unit,
+    onOpenStory: () -> Unit,
+    onOpenMission: () -> Unit,
     onOpenMore: () -> Unit
 ) {
     val s = com.example.ui.theme.LocalAppStrings.current
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -661,25 +673,28 @@ private fun FeatureMenuGrid(
                 label = s.menuQuran,
                 testTag = "menu_alquran",
                 onClick = onOpenQuran,
+                circleSize = 56.dp,
                 modifier = Modifier.weight(1f)
             ) {
-                QuranStandIcon(modifier = Modifier.size(32.dp))
+                QuranStandIcon(modifier = Modifier.size(28.dp))
             }
             MenuGridItem(
                 label = s.menuDua,
                 testTag = "menu_doa",
                 onClick = onOpenDua,
+                circleSize = 56.dp,
                 modifier = Modifier.weight(1f)
             ) {
-                DuaPrayingIcon(modifier = Modifier.size(32.dp))
+                DuaPrayingIcon(modifier = Modifier.size(28.dp))
             }
             MenuGridItem(
                 label = s.menuDzikir,
                 testTag = "menu_dzikir",
                 onClick = onOpenDzikir,
+                circleSize = 56.dp,
                 modifier = Modifier.weight(1f)
             ) {
-                DzikirTasbihIcon(modifier = Modifier.size(32.dp))
+                DzikirTasbihIcon(modifier = Modifier.size(28.dp))
             }
         }
 
@@ -688,28 +703,64 @@ private fun FeatureMenuGrid(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             MenuGridItem(
+                label = s.menuStory,
+                testTag = "menu_story",
+                onClick = onOpenStory,
+                circleSize = 56.dp,
+                modifier = Modifier.weight(1f)
+            ) {
+                StoryBookIcon(modifier = Modifier.size(28.dp))
+            }
+            MenuGridItem(
                 label = s.menuGroups,
                 testTag = "menu_groups",
                 onClick = onOpenGroups,
+                circleSize = 56.dp,
                 modifier = Modifier.weight(1f)
             ) {
-                GroupsIcon(modifier = Modifier.size(32.dp))
+                GroupsIcon(modifier = Modifier.size(28.dp))
             }
             MenuGridItem(
                 label = s.menuTracker,
                 testTag = "menu_tracker",
                 onClick = onOpenTracker,
+                circleSize = 56.dp,
                 modifier = Modifier.weight(1f)
             ) {
-                TrackerChecklistIcon(modifier = Modifier.size(32.dp))
+                TrackerChecklistIcon(modifier = Modifier.size(28.dp))
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            MenuGridItem(
+                label = s.menuExam,
+                testTag = "menu_exam",
+                onClick = onOpenExam,
+                circleSize = 56.dp,
+                modifier = Modifier.weight(1f)
+            ) {
+                ExamQuizIcon(modifier = Modifier.size(28.dp))
+            }
+            MenuGridItem(
+                label = s.menuMission,
+                testTag = "menu_mission",
+                onClick = onOpenMission,
+                circleSize = 56.dp,
+                modifier = Modifier.weight(1f)
+            ) {
+                MissionTargetIcon(modifier = Modifier.size(28.dp))
             }
             MenuGridItem(
                 label = s.menuMore,
                 testTag = "menu_selengkapnya",
                 onClick = onOpenMore,
+                circleSize = 56.dp,
                 modifier = Modifier.weight(1f)
             ) {
-                SelengkapnyaGridIcon(modifier = Modifier.size(28.dp))
+                SelengkapnyaGridIcon(modifier = Modifier.size(26.dp))
             }
         }
     }
@@ -721,15 +772,16 @@ private fun MenuGridItem(
     testTag: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    circleSize: androidx.compose.ui.unit.Dp = 62.dp,
     icon: @Composable () -> Unit
 ) {
     Column(
-        modifier = modifier.padding(horizontal = 4.dp),
+        modifier = modifier.padding(horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         NeumorphicCircleButton(
             onClick = onClick,
-            size = 62.dp,
+            size = circleSize,
             modifier = Modifier.testTag(testTag)
         ) {
             icon()

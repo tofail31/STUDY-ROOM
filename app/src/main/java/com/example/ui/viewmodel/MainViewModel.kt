@@ -8,15 +8,23 @@ import android.location.LocationManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.calc.PrayerTimeCalculator
+import com.example.data.local.ExamGroundDefaults
+import com.example.data.local.ExamQuestionBank
 import com.example.data.local.IslamicContentData
 import com.example.data.local.IslamicRepository
 import com.example.data.local.QuranCatalogData
 import com.example.data.local.StudyGroupsData
 import com.example.data.model.CalculationMethodOption
 import com.example.data.model.CityPreset
+import com.example.data.model.CustomPublishedExam
 import com.example.data.model.DailyAyah
 import com.example.data.model.DzikirPreset
+import com.example.data.model.ExamPaperStage
+import com.example.data.model.ExamPaperStyle
+import com.example.data.model.ExamUiState
 import com.example.data.model.FocusSessionMode
+import com.example.data.model.MissionItem
+import com.example.data.model.MissionTimeHelper
 import com.example.data.model.PrayerSchedule
 import com.example.data.model.PrepQuestionTag
 import com.example.data.model.StudyDashboardDefaults
@@ -31,6 +39,8 @@ import com.example.data.model.TrackerSubject
 import com.example.data.preferences.UserPreferencesRepository
 import com.example.data.preferences.UserPrefsState
 import com.example.notifications.AdzanScheduler
+import com.example.notifications.MissionScheduler
+import com.example.widget.MissionWidgetProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -126,6 +136,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _trackerSubjects = MutableStateFlow(TrackerDefaults.defaultSubjects)
     val trackerSubjects: StateFlow<List<TrackerSubject>> = _trackerSubjects.asStateFlow()
 
+    private val _examState = MutableStateFlow(ExamUiState())
+    val examState: StateFlow<ExamUiState> = _examState.asStateFlow()
+
+    private val _userCreatedExams = MutableStateFlow<List<CustomPublishedExam>>(emptyList())
+    val userCreatedExams: StateFlow<List<CustomPublishedExam>> = _userCreatedExams.asStateFlow()
+
+    private val _missions = MutableStateFlow<List<MissionItem>>(MissionTimeHelper.createStarterMissions())
+    val missions: StateFlow<List<MissionItem>> = _missions.asStateFlow()
+
+    private val _missionLiveNotifEnabled = MutableStateFlow(false)
+    val missionLiveNotifEnabled: StateFlow<Boolean> = _missionLiveNotifEnabled.asStateFlow()
+
     private var dailyAyahIdx = 0
     private var lastSyncedLocationKey = ""
     private var apiFetchedSchedule: PrayerSchedule? = null
@@ -133,6 +155,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var dashboardSyncLoaded = false
     private var studyPersistTicks = 0
     private var dashboardPersistTicks = 0
+    private var isExamTimerRunning = false
 
     init {
         startClockTicker()
@@ -274,6 +297,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     }
 
+                    // Tick elapsed seconds for an active chapter/wrong-answer exam
+                    if (isExamTimerRunning && _examState.value.stage == ExamPaperStage.TAKING) {
+                        _examState.update { it.copy(elapsedSeconds = it.elapsedSeconds + 1L) }
+                    }
+
                     delay(1_000L)
                 }
             }
@@ -317,6 +345,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     }
                     _trackerSubjects.value = prefs.trackerSubjects
+                    _userCreatedExams.value = prefs.userCreatedExams
+                    _missions.value = prefs.missions
+                    _missionLiveNotifEnabled.value = prefs.missionLiveNotifEnabled
+                    MissionScheduler.syncAll(
+                        context = getApplication<Application>().applicationContext,
+                        missions = prefs.missions,
+                        liveNotifEnabled = prefs.missionLiveNotifEnabled
+                    )
                 }
                 val locKey = "${prefs.latitude}:${prefs.longitude}:${prefs.calcMethod.id}"
                 if (locKey != lastSyncedLocationKey) {
@@ -970,12 +1006,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         persistTrackerSubjects()
     }
 
-    fun addTrackerChapter(subjectId: String, chapterTitle: String) {
+    fun addTrackerChapter(subjectId: String, paper: Int, chapterTitle: String) {
         val clean = chapterTitle.trim()
         if (clean.isEmpty()) return
+        val normalizedPaper = paper.coerceIn(1, 2)
         val newChapter = TrackerChapter(
             id = "trk_ch_${System.currentTimeMillis()}",
             title = clean,
+            paper = normalizedPaper,
             completedTags = emptySet()
         )
         _trackerSubjects.update { list ->
@@ -1008,8 +1046,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             colorHex = colorHex,
             chapters = listOf(
                 TrackerChapter(
-                    id = "${newSubjId}_ch_1",
+                    id = "${newSubjId}_p1_ch_1",
                     title = chTitle,
+                    paper = 1,
                     completedTags = emptySet()
                 )
             )
@@ -1030,5 +1069,390 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             prefsRepo.saveTrackerSubjects(snapshot)
         }
+    }
+
+    // --- Exam Center Actions ---
+
+    fun startChapterExam(subject: TrackerSubject, chapter: TrackerChapter) {
+        val loadedQuestions = ExamQuestionBank.getQuestionsForChapter(
+            subjectId = subject.id,
+            chapterId = chapter.id,
+            chapterTitle = chapter.title,
+            paper = chapter.paper
+        )
+        isExamTimerRunning = true
+        _examState.value = ExamUiState(
+            activeSubjectId = subject.id,
+            activeSubjectNameEn = subject.nameEn,
+            activeSubjectNameBn = subject.nameBn,
+            activeChapterId = chapter.id,
+            activeChapterTitle = chapter.title,
+            activePaper = chapter.paper,
+            isWrongAnswersExam = false,
+            questions = loadedQuestions,
+            selectedAnswers = emptyMap(),
+            stage = ExamPaperStage.TAKING,
+            elapsedSeconds = 0L,
+            correctCount = 0,
+            wrongCount = 0,
+            skippedCount = 0
+        )
+    }
+
+    fun startWrongAnswersExam(): Boolean {
+        val wrongIds = prefsState.value.wrongExamQuestionIds
+        val bankQuestions = ExamQuestionBank.getQuestionsByIds(wrongIds)
+        val customLookup = (_userCreatedExams.value + ExamGroundDefaults.defaultCommunityExams)
+            .flatMap { it.questions }
+            .associateBy { it.id }
+        val customWrong = wrongIds.mapNotNull { customLookup[it] }
+        val loadedQuestions = (bankQuestions + customWrong).distinctBy { it.id }
+        if (loadedQuestions.isEmpty()) return false
+        isExamTimerRunning = true
+        _examState.value = ExamUiState(
+            activeSubjectId = "wrong_ans",
+            activeSubjectNameEn = "Wrong Answers Review",
+            activeSubjectNameBn = "ভুল উত্তরের পরীক্ষা",
+            activeChapterId = "wrong_ans_queue",
+            activeChapterTitle = "${loadedQuestions.size} Missed Questions",
+            activePaper = 1,
+            isWrongAnswersExam = true,
+            questions = loadedQuestions,
+            selectedAnswers = emptyMap(),
+            stage = ExamPaperStage.TAKING,
+            elapsedSeconds = 0L,
+            correctCount = 0,
+            wrongCount = 0,
+            skippedCount = 0
+        )
+        return true
+    }
+
+    fun startCustomExam(exam: CustomPublishedExam) {
+        if (exam.questions.isEmpty()) return
+        // Increment attempt count if it's a user-created exam
+        val updated = _userCreatedExams.value.map {
+            if (it.id == exam.id) it.copy(attemptCount = it.attemptCount + 1) else it
+        }
+        if (updated != _userCreatedExams.value) {
+            _userCreatedExams.value = updated
+            persistCustomExams()
+        }
+        isExamTimerRunning = true
+        _examState.value = ExamUiState(
+            activeSubjectId = exam.subjectId,
+            activeSubjectNameEn = exam.subjectName,
+            activeSubjectNameBn = exam.subjectName,
+            activeChapterId = "custom_exam_${exam.id}",
+            activeChapterTitle = exam.title,
+            activePaper = exam.paper,
+            paperStyle = exam.paperStyle,
+            isWrongAnswersExam = false,
+            questions = exam.questions,
+            selectedAnswers = emptyMap(),
+            stage = ExamPaperStage.TAKING,
+            elapsedSeconds = 0L,
+            correctCount = 0,
+            wrongCount = 0,
+            skippedCount = 0
+        )
+    }
+
+    fun setExamPaperStyle(style: ExamPaperStyle) {
+        _examState.update { it.copy(paperStyle = style) }
+    }
+
+    fun saveOrPublishCustomExam(exam: CustomPublishedExam) {
+        _userCreatedExams.update { current ->
+            val exists = current.any { it.id == exam.id }
+            if (exists) {
+                current.map { if (it.id == exam.id) exam else it }
+            } else {
+                listOf(exam) + current
+            }
+        }
+        persistCustomExams()
+    }
+
+    fun toggleCustomExamPublished(examId: String) {
+        _userCreatedExams.update { current ->
+            current.map { if (it.id == examId) it.copy(isPublished = !it.isPublished) else it }
+        }
+        persistCustomExams()
+    }
+
+    fun deleteCustomExam(examId: String) {
+        _userCreatedExams.update { current ->
+            current.filterNot { it.id == examId }
+        }
+        persistCustomExams()
+    }
+
+    private fun persistCustomExams() {
+        val snapshot = _userCreatedExams.value
+        viewModelScope.launch {
+            prefsRepo.saveCustomExams(snapshot)
+        }
+    }
+
+    fun selectExamOption(questionId: String, optionIndex: Int) {
+        _examState.update { state ->
+            if (state.stage != ExamPaperStage.TAKING) return@update state
+            state.copy(selectedAnswers = state.selectedAnswers + (questionId to optionIndex))
+        }
+    }
+
+    fun submitExam() {
+        val current = _examState.value
+        if (current.questions.isEmpty()) return
+        isExamTimerRunning = false
+
+        var correct = 0
+        var wrong = 0
+        var skipped = 0
+        val newlyWrongIds = mutableSetOf<String>()
+        val newlyCorrectIds = mutableSetOf<String>()
+
+        current.questions.forEach { q ->
+            val picked = current.selectedAnswers[q.id]
+            when {
+                picked == null -> {
+                    skipped++
+                    newlyWrongIds.add(q.id)
+                }
+                picked == q.correctIndex -> {
+                    correct++
+                    newlyCorrectIds.add(q.id)
+                }
+                else -> {
+                    wrong++
+                    newlyWrongIds.add(q.id)
+                }
+            }
+        }
+
+        _examState.update {
+            it.copy(
+                stage = ExamPaperStage.RESULT,
+                correctCount = correct,
+                wrongCount = wrong,
+                skippedCount = skipped
+            )
+        }
+
+        val chapterKey = if (current.isWrongAnswersExam) null else current.activeChapterId
+        viewModelScope.launch {
+            prefsRepo.recordExamResult(
+                chapterId = chapterKey,
+                score = correct,
+                newlyWrongIds = newlyWrongIds,
+                newlyCorrectIds = newlyCorrectIds
+            )
+        }
+    }
+
+    fun showExamAnswers() {
+        _examState.update { it.copy(stage = ExamPaperStage.REVIEW_ANSWERS) }
+    }
+
+    fun showExamResultPaper() {
+        _examState.update { it.copy(stage = ExamPaperStage.RESULT) }
+    }
+
+    fun retakeExam() {
+        isExamTimerRunning = true
+        _examState.update {
+            it.copy(
+                selectedAnswers = emptyMap(),
+                stage = ExamPaperStage.TAKING,
+                elapsedSeconds = 0L,
+                correctCount = 0,
+                wrongCount = 0,
+                skippedCount = 0
+            )
+        }
+    }
+
+    fun stopExamTimer() {
+        isExamTimerRunning = false
+    }
+
+    fun updateStoryLastReadPage(bookId: String, pageIndex: Int) {
+        viewModelScope.launch {
+            prefsRepo.updateStoryLastReadPage(bookId, pageIndex)
+        }
+    }
+
+    fun toggleStoryBookmarkPage(bookId: String, pageIndex: Int) {
+        viewModelScope.launch {
+            prefsRepo.toggleStoryBookmarkPage(bookId, pageIndex)
+        }
+    }
+
+    // --- 24h 4-Hour Mission Planner & Widget / Alarm Sync ---
+
+    fun saveMission(item: MissionItem, repeatNext7Days: Boolean = false) {
+        val toAddOrUpdate = mutableListOf(item)
+        if (repeatNext7Days) {
+            val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+            val cal = Calendar.getInstance()
+            try {
+                fmt.parse(item.dateKey)?.let { cal.time = it }
+            } catch (_: Exception) {
+            }
+            for (dayOffset in 1..7) {
+                cal.add(Calendar.DAY_OF_YEAR, 1)
+                val targetDate = fmt.format(cal.time)
+                toAddOrUpdate.add(
+                    item.copy(
+                        id = "${item.id}_d$dayOffset",
+                        dateKey = targetDate,
+                        isCompleted = false,
+                        updatedAtMillis = System.currentTimeMillis()
+                    )
+                )
+            }
+        }
+
+        _missions.update { current ->
+            val updated = current.toMutableList()
+            toAddOrUpdate.forEach { incoming ->
+                val idx = updated.indexOfFirst { it.id == incoming.id }
+                if (idx >= 0) {
+                    updated[idx] = incoming
+                } else {
+                    updated.add(incoming)
+                }
+            }
+            updated.sortedWith(compareBy<MissionItem> { it.dateKey }.thenBy { it.blockIndex })
+        }
+        persistAndSyncMissions()
+    }
+
+    fun toggleMissionCompleted(missionId: String) {
+        _missions.update { current ->
+            current.map { m ->
+                if (m.id == missionId) {
+                    val nextDone = !m.isCompleted
+                    val nextCompletedTags = if (nextDone && m.targetTags.isNotEmpty()) {
+                        m.targetTags
+                    } else if (!nextDone && m.completedTags.containsAll(m.targetTags)) {
+                        emptySet()
+                    } else {
+                        m.completedTags
+                    }
+                    m.copy(
+                        isCompleted = nextDone,
+                        completedTags = nextCompletedTags,
+                        updatedAtMillis = System.currentTimeMillis()
+                    )
+                } else {
+                    m
+                }
+            }
+        }
+        persistAndSyncMissions()
+    }
+
+    fun toggleMissionPrepTag(missionId: String, tag: PrepQuestionTag) {
+        _missions.update { current ->
+            current.map { m ->
+                if (m.id != missionId) {
+                    m
+                } else {
+                    val nextTargets = if (tag in m.targetTags) m.targetTags else m.targetTags + tag
+                    val nextDoneTags = if (tag in m.completedTags) m.completedTags - tag else m.completedTags + tag
+                    val allDone = nextTargets.isNotEmpty() && nextDoneTags.containsAll(nextTargets)
+                    m.copy(
+                        targetTags = nextTargets,
+                        completedTags = nextDoneTags,
+                        isCompleted = allDone,
+                        updatedAtMillis = System.currentTimeMillis()
+                    )
+                }
+            }
+        }
+        persistAndSyncMissions()
+    }
+
+    fun toggleMissionAlarm(missionId: String) {
+        _missions.update { current ->
+            current.map { m ->
+                if (m.id == missionId) {
+                    m.copy(alarmEnabled = !m.alarmEnabled, updatedAtMillis = System.currentTimeMillis())
+                } else {
+                    m
+                }
+            }
+        }
+        persistAndSyncMissions()
+    }
+
+    fun deleteMission(missionId: String) {
+        _missions.update { current ->
+            current.filterNot { it.id == missionId }
+        }
+        persistAndSyncMissions()
+    }
+
+    fun setMissionLiveNotifEnabled(enabled: Boolean) {
+        _missionLiveNotifEnabled.value = enabled
+        val ctx = getApplication<Application>().applicationContext
+        val snapshot = _missions.value
+        viewModelScope.launch {
+            prefsRepo.setMissionLiveNotifEnabled(enabled, snapshot)
+        }
+        MissionScheduler.syncAll(ctx, snapshot, enabled)
+    }
+
+    fun copyDayMissionsToNext7Days(sourceDateKey: String) {
+        val sourceMissions = _missions.value.filter { it.dateKey == sourceDateKey }
+        if (sourceMissions.isEmpty()) return
+
+        val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        val cal = Calendar.getInstance()
+        try {
+            fmt.parse(sourceDateKey)?.let { cal.time = it }
+        } catch (_: Exception) {
+        }
+
+        val generated = mutableListOf<MissionItem>()
+        for (dayOffset in 1..7) {
+            cal.add(Calendar.DAY_OF_YEAR, 1)
+            val targetDate = fmt.format(cal.time)
+            sourceMissions.forEach { src ->
+                generated.add(
+                    src.copy(
+                        id = "msn_cp_${targetDate}_${src.blockIndex}_${src.id.hashCode() and 0xFFF}",
+                        dateKey = targetDate,
+                        isCompleted = false,
+                        updatedAtMillis = System.currentTimeMillis()
+                    )
+                )
+            }
+        }
+
+        _missions.update { current ->
+            val targetDates = generated.map { it.dateKey }.toSet()
+            val preserved = current.filterNot { it.dateKey in targetDates }
+            (preserved + generated).sortedWith(compareBy<MissionItem> { it.dateKey }.thenBy { it.blockIndex })
+        }
+        persistAndSyncMissions()
+    }
+
+    fun syncMissionWidgetAndNotifications() {
+        val ctx = getApplication<Application>().applicationContext
+        MissionScheduler.syncAll(ctx, _missions.value, _missionLiveNotifEnabled.value)
+        MissionWidgetProvider.updateAllWidgets(ctx)
+    }
+
+    private fun persistAndSyncMissions() {
+        val snapshot = _missions.value
+        val liveEnabled = _missionLiveNotifEnabled.value
+        val ctx = getApplication<Application>().applicationContext
+        viewModelScope.launch {
+            prefsRepo.saveMissions(snapshot, liveEnabled)
+        }
+        MissionScheduler.syncAll(ctx, snapshot, liveEnabled)
     }
 }
